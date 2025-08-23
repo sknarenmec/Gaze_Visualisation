@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaze Study Results</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif; /* Medical-related font */
+            margin: 0;
+            padding: 20px;
+            background-color: #121212; /* Full black theme */
+            color: #ffffff; /* White text on black background */
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
+        }
+        #uploadGazeData {
+            display: block;
+            margin: 0 auto 20px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+        }
+        #uploadGazeData:hover {
+            background-color: #444;
+        }
+        #resultsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .image-container {
+            position: relative;
+            display: inline-block;
+            margin: 10px;
+            border: 2px solid #555;
+            border-radius: 8px;
+            background: #222;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+        }
+        .image-container img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-bottom: 2px solid #555;
+        }
+        .gaze-dot {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .gaze-dot.first {
+            background: #28a745; /* Green */
+        }
+        .gaze-dot.last {
+            background: #dc3545; /* Red */
+        }
+        #downloadPDF {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #downloadPDF:hover {
+            background-color: #0056b3;
+        }
+        #summaryPanel {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+            color: #ccc;
+        }
+        #loadingBox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            padding-top: 20%;
+            z-index: 1000;
+        }
+        .eye {
+            width: 60px;
+            height: 30px;
+            border: 5px solid #fff;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto;
+            animation: blink 1s infinite;
+        }
+        .pupil {
+            width: 15px;
+            height: 15px;
+            background: black;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes blink {
+            0%, 20%, 100% { height: 30px; }
+            10% { height: 5px; }
+        }
+        #loadingBox .percentage {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .image-metrics {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 8px;
+            background-color: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload and View Gaze Study Results</h1>
+    <input type="file" id="uploadGazeData" accept=".json" aria-label="Upload Gaze Data">
+
+    <div id="resultsContainer" role="region" aria-labelledby="resultsHeader">
+        <h2 id="resultsHeader" hidden>Gaze Study Results</h2>
+    </div>
+    <div id="metricsContainer" style="display: none;"></div>
+    <button id="downloadPDF" style="display: none;">Download Study Result as PDF</button>
+
+    <div id="summaryPanel" style="display: none;">
+        <p>Total Fixations: <span id="totalFixations"></span></p>
+        <p>Average Gaze Duration: <span id="avgGazeDuration"></span></p>
+        <p>Average Dwell Time: <span id="avgDwellTime"></span></p>
+    </div>
+
+    <div id="loadingBox" aria-live="polite">
+        <div class="eye">
+            <div class="pupil"></div>
+        </div>
+        <div class="percentage" id="progressPercentage">0%</div>
+        <div id="errorMessage" style="color: red; display: none;"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.2/heatmap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.4.0/dist/panzoom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        let globalData = null;
+        const imageMetrics = [];
+
+        document.getElementById('uploadGazeData').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/json') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        globalData = JSON.parse(e.target.result);
+                        displayResults(globalData);
+                        document.getElementById('downloadPDF').style.display = 'inline';
+                        document.getElementById('summaryPanel').style.display = 'block';
+                        calculateMetrics(globalData.gazeData);
+                    } catch (error) {
+                        alert('Error parsing JSON: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Please upload a valid JSON file.');
+            }
+        });
+
+        function displayResults(data) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+            imageMetrics.length = 0; // Clear previous metrics data
+
+            const images = groupEntriesByImage(data.gazeData);
+            Object.entries(images).forEach(([imageSrc, gazeEntries]) => {
+                const container = createImageContainer(imageSrc, gazeEntries);
+                resultsContainer.appendChild(container);
+                displayImageMetrics(imageSrc, gazeEntries); // Call to display metrics
+            });
+        }
+
+        function groupEntriesByImage(gazeData) {
+            return gazeData.reduce((acc, entry) => {
+                const imageSrc = entry.image;
+                if (!acc[imageSrc]) acc[imageSrc] = [];
+                acc[imageSrc].push(entry);
+                return acc;
+            }, {});
+        }
+
+        function createImageContainer(imageSrc, gazeEntries) {
+            const container = document.createElement('div');
+            container.classList.add('image-container');
+
+            const img = document.createElement('img');
+            img.src = imageSrc;
+
+            img.onload = () => appendGazeData(container, gazeEntries, img.offsetWidth, img.offsetHeight);
+
+            container.appendChild(img);
+            return container;
+        }
+
+        function appendGazeData(container, gazeEntries, imgWidth, imgHeight) {
+            container.querySelectorAll('.gaze-dot').forEach(el => el.remove());
+
+            const gazeDotSize = Math.min(imgWidth, imgHeight) * 0.02;
+
+            const heatmapInstance = h337.create({
+                container: container,
+                radius: 20,
+                maxOpacity: .6,
+                scaleRadius: false,
+                useLocalExtrema: true,
+            });
+
+            gazeEntries.forEach((entry, index) => {
+                const coords = entry.transform.match(/translate3d\(([^,]+)px, ([^,]+)px, 0px\)/);
+                if (!coords) return;
+
+                const x = Math.round(parseFloat(coords[1]));
+                const y = Math.round(parseFloat(coords[2]));
+
+                if (x >= 0 && x <= imgWidth && y >= 0 && y <= imgHeight) {
+                    const gazeDot = document.createElement('div');
+                    gazeDot.classList.add('gaze-dot');
+                    gazeDot.style.width = `${gazeDotSize}px`;
+                    gazeDot.style.height = `${gazeDotSize}px`;
+                    if (index === 0) {
+                        gazeDot.classList.add('first');
+                    } else if (index === gazeEntries.length - 1) {
+                        gazeDot.classList.add('last');
+                    }
+
+                    gazeDot.style.left = `${x - gazeDotSize / 2}px`;
+                    gazeDot.style.top = `${y - gazeDotSize / 2}px`;
+
+                    container.appendChild(gazeDot);
+
+                    heatmapInstance.addData({
+                        x: x,
+                        y: y,
+                        value: 1,
+                    });
+                }
+            });
+        }
+
+        function displayImageMetrics(imageSrc, gazeEntries) {
+            const metricsContainer = document.getElementById('metricsContainer');
+            const metricsBox = document.createElement('div');
+            metricsBox.classList.add('image-metrics');
+            metricsBox.innerHTML = `
+                <p>Image: ${imageSrc}</p>
+                <p>Fixation Count: ${gazeEntries.length}</p>
+                <p>Average Gaze Duration: ${calculateAverageGazeDuration(gazeEntries)}</p>
+                <p>Average Dwell Time: ${calculateAverageDwellTime(gazeEntries)}</p>
+            `;
+            metricsContainer.appendChild(metricsBox);
+        }
+
+        function calculateMetrics(gazeData) {
+            let totalFixations = 0;
+            let totalGazeDuration = 0;
+            let totalDwellTime = 0;
+
+            gazeData.forEach(entry => {
+                totalFixations++;
+                totalGazeDuration += entry.gazeDuration;
+                totalDwellTime += entry.dwellTime;
+            });
+
+            document.getElementById('totalFixations').textContent = totalFixations;
+            document.getElementById('avgGazeDuration').textContent = (totalGazeDuration / totalFixations).toFixed(2);
+            document.getElementById('avgDwellTime').textContent = (totalDwellTime / totalFixations).toFixed(2);
+        }
+
+        function calculateAverageGazeDuration(entries) {
+            return (entries.reduce((sum, entry) => sum + entry.gazeDuration, 0) / entries.length).toFixed(2);
+        }
+
+        function calculateAverageDwellTime(entries) {
+            return (entries.reduce((sum, entry) => sum + entry.dwellTime, 0) / entries.length).toFixed(2);
+        }
+
+        document.getElementById('downloadPDF').addEventListener('click', function() {
+            const doc = new jsPDF();
+            let yPosition = 20;
+
+            doc.setFontSize(16);
+            doc.text('Gaze Study Report', 20, yPosition);
+            yPosition += 10;
+
+            doc.text('Date: ' + new Date().toLocaleDateString(), 20, yPosition);
+            yPosition += 10;
+
+            doc.text('Total Fixations: ' + document.getElementById('totalFixations').textContent, 20, yPosition);
+            doc.text('Avg Gaze Duration: ' + document.getElementById('avgGazeDuration').textContent, 20, yPosition + 10);
+            doc.text('Avg Dwell Time: ' + document.getElementById('avgDwellTime').textContent, 20, yPosition + 20);
+            yPosition += 40;
+
+            globalData.gazeData.forEach(entry => {
+                const imgElement = new Image();
+                imgElement.src = entry.image;
+                imgElement.onload = () => {
+                    doc.addImage(imgElement, 'JPEG', 20, yPosition, 170, 130);
+                    yPosition += 140;
+                    doc.addPage();
+                };
+            });
+
+            doc.save('gaze-study-report.pdf');
+        });
+    </script>
+</body>
+</html>

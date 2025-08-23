@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GazeStudy Calibration</title>
+    <link rel="stylesheet" type="text/css" href="./css/style.css">
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <script src="./webgazer.js"></script>
+    <script>
+        // Initialize WebGazer with correct configuration
+        webgazer.setGazeListener(function(data, elapsedTime) {
+            if (data) {
+                var x = data.x;
+                var y = data.y;
+                // Create red dot at gaze position
+                createRedDot(x, y);
+            }
+        });
+        
+        // Initialize WebGazer with TFFacemesh tracker
+        webgazer
+            .setGazeListener(function(data, elapsedTime) {
+                if (data) {
+                    var x = data.x;
+                    var y = data.y;
+                    // Create red dot at gaze position
+                    createRedDot(x, y);
+                }
+            })
+            .begin();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            position: relative;
+        }
+
+        .red-dot {
+            position: absolute;
+            background: red;
+            border-radius: 100%;
+            opacity: 0.7;
+            width: 15px;  /* Increased size */
+            height: 15px; /* Increased size */
+        }
+
+        #calibrationImage {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Subject Name Styling */
+        #subjectInfo {
+            color: #FFFFFF; /* White text color */
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            z-index: 10; /* Place it above other elements */
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            background-color: #2E3B4E; /* Dark background for navbar */
+        }
+
+        .navbar a {
+            color: #FFFFFF; /* White text color for links */
+        }
+
+        /* Accuracy Indicator */
+        #Accuracy {
+            font-size: 1.2em;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                color: red; /* Initial color */
+            }
+            50% {
+                transform: scale(1.05);
+                color: orange; /* Midway color */
+            }
+            100% {
+                transform: scale(1);
+                color: green; /* Final color for calibrated */
+            }
+        }
+    </style>
+</head>
+<body LANG="en-US" LINK="#0000ff" DIR="LTR">
+<canvas id="plotting_canvas" width="500" height="500" style="cursor:crosshair;"></canvas>
+
+<!-- Display Subject's Name -->
+<div id="subjectInfo"></div>
+
+<nav id="webgazerNavbar" class="navbar navbar-expand-lg navbar-default navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#myNavbar">
+                <span class="navbar-toggler-icon">Menu</span>
+            </button>
+        </div>
+        <div class="collapse navbar-collapse" id="myNavbar">
+            <ul class="nav navbar-nav">
+                <li id="Accuracy"><a>Not yet Calibrated</a></li>
+                <li><a onclick="Restart()" href="#">Recalibrate</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a class="helpBtn" onclick="startStudy()" href="#"><span class="glyphicon glyphicon-cog"></span> Start Study</a></li>
+                <!-- Removed Start Live Plot button -->
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="calibrationDiv">
+    <input type="button" class="Calibration" id="Pt1"></input>
+    <input type="button" class="Calibration" id="Pt2"></input>
+    <input type="button" class="Calibration" id="Pt3"></input>
+    <input type="button" class="Calibration" id="Pt4"></input>
+    <input type="button" class="Calibration" id="Pt5"></input>
+    <input type="button" class="Calibration" id="Pt6"></input>
+    <input type="button" class="Calibration" id="Pt7"></input>
+    <input type="button" class="Calibration" id="Pt8"></input>
+    <input type="button" class="Calibration" id="Pt9"></input>
+    <input type="button" class="Calibration" id="Pt10"></input>
+    <input type="button" class="Calibration" id="Pt11"></input>
+    <input type="button" class="Calibration" id="Pt12"></input>
+    <input type="button" class="Calibration" id="Pt13"></input>
+    <input type="button" class="Calibration" id="Pt14"></input>
+    <input type="button" class="Calibration" id="Pt15"></input>
+    <input type="button" class="Calibration" id="Pt16"></input>
+    <input type="button" class="Calibration" id="Pt17"></input>
+</div>
+
+<!-- Add Modal structure if necessary -->
+<div id="helpModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <img src="calibration.jpg" width="100%" height="100%" alt="webgazer demo instructions"></img>
+                <p><b>User should sit closer to the webcamera to attain maximum accuracy</b></p>
+            </div>
+            <div class="modal-footer">
+                <button id="closeBtn" type="button" class="btn btn-default" data-bs-dismiss="modal">Close & load saved model</button>
+                <button type="button" id='start_calibration' class="btn btn-primary" data-bs-dismiss="modal" onclick="Restart()">Calibrate</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<img id="calibrationImage" src="demo.jpeg" width="500" height="500">
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="./js/main.js"></script>
+<script src="./js/calibration.js"></script>
+<script src="./js/precision_calculation.js"></script>
+<script src="./js/precision_store_points.js"></script>
+<script src="./js/resize_canvas.js"></script>
+<script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+    
+
+    let gazeData = [];
+    let currentImageIndex = 0;
+    let startTime;
+    let isTracking = false;
+
+    function startWebGazer() {
+        webgazer.params.applyKalmanFilter = true; // Kalman filter is selected by default
+        document.querySelector('a[onclick="webgazer.applyKalmanFilter(!webgazer.params.applyKalmanFilter)"]').style.display = 'none';
+
+        webgazer.setGazeListener((data, elapsedTime) => {
+            if (data !== null && isTracking) {
+                createRedDot(data.x, data.y);
+                const transformValue = document.querySelector('#webgazerGazeDot').style.transform;
+                const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
+                const matches = transformValue.match(regex);
+                const x = matches ? parseFloat(matches[1]) : null;
+                const y = matches ? parseFloat(matches[2]) : null;
+
+                gazeData.push({ x, y, time: Date.now() - startTime });
+                // Stop console log to avoid clutter
+                // console.log(gazeData); // Commented out
+            }
+        }).begin();
+    }
+
+    function createRedDot(x, y) {
+        const redDot = document.createElement('div');
+        redDot.classList.add('red-dot');
+        redDot.style.left = x + 'px';
+        redDot.style.top = y + 'px';
+        document.querySelector('.image-container').appendChild(redDot);
+    }
+
+    function startStudy() {
+        Swal.fire({
+            title: 'Start the Study Now?',
+            text: 'Click OK to start the study or Cancel to remain in calibration state.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'OK',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirect to the study.html page
+                window.location.href = 'study.html';
+            }
+        });
+    }
+
+    // Check for the existence of the "Start Study" button and attach the event listener
+    const startStudyButton = document.querySelector('.helpBtn'); // Check for the correct button
+    if (startStudyButton) {
+        startStudyButton.addEventListener('click', startStudy);
+    }
+</script>
+</body>
+</html>

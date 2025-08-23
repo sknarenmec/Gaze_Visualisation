@@ -1,0 +1,243 @@
+/* Main container for the page */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #141414; /* Dark background */
+    color: white;
+    font-family: 'Helvetica', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+/* Loading spinner styles */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #e50914;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-message {
+    color: #e50914;
+    font-size: 18px;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Header or title styling */
+h1 {
+    font-size: 36px;
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #e50914; /* Netflix red */
+}
+
+/* Subject Name styling */
+#subjectName {
+    position: absolute; /* Position absolute to place it in the corner */
+    top: 5px; /* Adjusted distance from the top to move it slightly up */
+    left: 10px; /* Distance from the left */
+    font-size: 24px; /* Size for subject name */
+    color: #e50914; /* Netflix red */
+    margin-bottom: 20px; /* Spacing below the subject name */
+    text-shadow: 0 0 5px rgba(229, 9, 20, 0.8), 0 0 10px rgba(229, 9, 20, 0.5); /* Glowing effect */
+    animation: fadeIn 1s ease-in; /* Fade-in animation */
+    transition: transform 0.3s ease; /* Smooth scaling transition */
+}
+
+/* Animation to scale up the subject name slightly on hover */
+#subjectName:hover {
+    transform: scale(1.05); /* Slightly enlarge the subject name */
+}
+
+/* Keyframes for fade-in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0; /* Start from transparent */
+        transform: translateY(-10px); /* Slightly move up */
+    }
+    to {
+        opacity: 1; /* Fully visible */
+        transform: translateY(0); /* Return to original position */
+    }
+}
+
+/* Container for the image gallery */
+#imageGallery {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+}
+
+/* Container holding each image and its elements */
+.image-container {
+    position: relative;
+    margin: 20px;
+    width: 300px; /* Default size */
+    height: 300px;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+}
+
+/* Hover effect for expansion like Netflix */
+.image-container:hover {
+    transform: scale(1.05); /* Slightly enlarge the image */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* Increase shadow on hover */
+}
+
+/* Styling the canvas/image itself */
+.image-container canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Button and stats container */
+.visualization {
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    color: white;
+    border-top: 1px solid #444;
+}
+
+/* Statistics under each image */
+.stats {
+    font-size: 14px;
+    color: #ddd;
+}
+
+/* Button to download the PDF */
+.download-btn {
+    display: none; /* Hidden by default */
+    position: absolute; /* Position inside image */
+    bottom: 10px; /* Adjust as needed */
+    left: 50%;
+    transform: translateX(-50%); /* Center horizontally */
+    padding: 10px 15px;
+    background-color: rgba(229, 9, 20, 0.8); /* Semi-transparent red */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+    font-size: 14px; /* Consistent font size */
+}
+
+/* Show download button when image is clicked */
+.image-container.clicked .download-btn {
+    display: block; /* Show the button when the image is clicked */
+}
+
+/* Button hover effect */
+.download-btn:hover {
+    background-color: #ff4500; /* Change color on hover */
+}
+
+/* Styling the file input */
+#fileInput {
+    display: none;
+}
+
+label[for="fileInput"] {
+    background-color: #e50914;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 20px;
+}
+
+label[for="fileInput"]:hover {
+    background-color: #ff4500;
+}
+
+/* Loading Spinner */
+#loadingSpinner {
+    display: none; /* Hidden by default */
+    position: fixed; /* Cover the entire screen */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Dark overlay */
+    z-index: 1000; /* Ensure it's on top */
+    justify-content: center;
+    align-items: center;
+}
+
+.spinner {
+    border: 8px solid rgba(255, 255, 255, 0.3);
+    border-top: 8px solid #e50914; /* Netflix red */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite; /* Animation for spinner */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Footer styling */
+footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #888;
+}
+
+/* New Study Button */
+.new-study-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #e50914; /* Netflix Red */
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    z-index: 1000; /* Ensure it stays on top */
+}
+
+.new-study-btn:hover {
+    background-color: #f6123a; /* Darker red on hover */
+    transform: scale(1.05); /* Slight scale up on hover */
+}
+

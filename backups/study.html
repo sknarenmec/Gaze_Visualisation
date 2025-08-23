@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGazer Eye Tracking Study</title>
+    <script src="webgazer.js"></script>
+    <link rel="stylesheet" type="text/css" href="./css/style.css">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: white;
+        }
+
+        #webgazerGazeDot {
+            display: block;
+            position: fixed;
+            z-index: 99999;
+            left: -5px;
+            top: -5px;
+            background: red;
+            border-radius: 100%;
+            opacity: 0.7;
+            width: 10px;
+            height: 10px;
+        }
+
+        #imageContainer, #instructionContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid red;
+        }
+
+        #instructionContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            color: black;
+            padding: 20px;
+            border: 2px solid black;
+            z-index: 100000;
+        }
+
+        button {
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #downloadDataBtn {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgb(2, 255, 213);
+        }
+
+        #pauseResumeBtn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgb(206, 255, 31);
+        }
+
+        #skipBtn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background-color: rgb(255, 100, 100);
+        }
+        #endStudyBtn {
+            position: absolute;
+            bottom: 50px; /* Adjust the bottom position to move it above the Pause Study button */
+            right: 20px;
+            background-color: rgb(255, 50, 50);
+            display: none; /* Initially hidden */
+        }
+
+        
+
+        #progressBar {
+            width: 80%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            z-index: 100000;
+        }
+
+        #progressBarFill {
+            height: 100%;
+            background-color: blue;
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        #completionMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            color: black;
+            padding: 20px;
+            border: 2px solid black;
+            display: none;
+            z-index: 100000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="instructionContainer">
+        <p>Welcome to the WebGazer Eye Tracking Study.</p>
+        <p>Instructions:</p>
+        <ul>
+            <li>Look at the center of the screen.</li>
+            <li>Follow the images as they appear.</li>
+            <li>Ensure you are comfortable and seated properly.</li>
+            <li>Press 'P' to pause/resume the study.</li>
+            <li>Use the buttons to download data or skip images.</li>
+        </ul>
+    </div>
+
+    <div id="imageContainer"></div>
+    <div id="webgazerGazeDot"></div>
+    <button id="downloadDataBtn" onclick="downloadData()">Download</button>
+    <button id="pauseResumeBtn" onclick="toggleStudy()">Pause Study</button>
+    <button id="skipBtn" onclick="skipImage()">Skip Image</button>
+    <button id="endStudyBtn" onclick="endStudy()">End Study</button> <!-- New End Study Button -->
+    <div id="progressBar"><div id="progressBarFill"></div></div>
+    
+    <div id="completionMessage">
+        <p>Study Completed!</p>
+        <p style="color: red; font-weight: bold;">Please download your data.</p> <!-- Updated the styling here -->
+        <button onclick="navigateToResults()">Go to Results</button>
+    </div>
+    
+
+    <script>
+        let gazeData = [];
+        let currentImageIndex = 0;
+        let isPaused = false;
+        let imageTimer;
+        let imageStartTime;
+        let imageEndTime;
+        let imageDisplayLog = [];
+        let progressBarFill = document.getElementById('progressBarFill');
+        let instructionContainer = document.getElementById('instructionContainer');
+        let completionMessage = document.getElementById('completionMessage');
+        let progressBarAnimationFrame;
+
+        const images = [
+            { src: 'assets/1.webp', duration: 12000 },
+            { src: 'assets/2.webp', duration: 12000 },
+            { src: 'assets/3.png', duration: 8000 },
+            { src: 'assets/4.webp', duration: 8000 },
+            { src: 'assets/5.webp', duration: 8000 },
+            { src: 'assets/6.webp', duration: 8000 },
+            { src: 'assets/7.webp', duration: 12000 },
+            { src: 'assets/8.webp', duration: 12000 },
+            { src: 'assets/9.webp', duration: 12000 },
+            { src: 'assets/10.webp', duration: 8000 },
+            { src: 'assets/11.webp', duration: 8000 },
+            { src: 'assets/12.webp', duration: 8000 },
+            { src: 'assets/13.webp', duration: 8000 },
+            { src: 'assets/14.png', duration: 12000 },
+            { src: 'assets/15.png', duration: 12000 },
+            { src: 'assets/16.png', duration: 12000 },
+            { src: 'assets/17.webp', duration: 10000 },
+            { src: 'assets/18.webp', duration: 10000 },
+            { src: 'assets/19.webp', duration: 10000 },
+            { src: 'assets/20.webp', duration: 10000 },
+            { src: 'assets/21.webp', duration: Infinity },
+            { src: 'assets/22.webp', duration: Infinity },
+            { src: 'assets/23.png', duration: Infinity },
+            { src: 'assets/24.webp', duration: 25000 },
+            { src: 'assets/25.webp', duration: 25000 },
+            { src: 'assets/26.webp', duration: 15000 },
+            { src: 'assets/27.webp', duration: Infinity },
+            { src: 'assets/28.webp', duration: Infinity },
+            { src: 'assets/29.webp', duration: Infinity },
+            { src: 'assets/30.webp', duration: Infinity },
+            { src: 'assets/31.webp', duration: 10000 },
+            { src: 'assets/32.webp', duration: 15000 },
+            { src: 'assets/plain.png', duration: Infinity },
+            { src: 'assets/plain2.png', duration: Infinity },
+            { src: 'assets/plain3.png', duration: Infinity },
+            { src: 'assets/plain4.png', duration: Infinity },
+            { src: 'assets/plain5.png', duration: Infinity },
+            { src: 'assets/plain6.png', duration: Infinity },
+        ];
+
+        function initializeWebGazer() {
+            return new Promise((resolve, reject) => {
+                webgazer.params.applyKalmanFilter = true;
+                webgazer.params.showVideoPreview = false;
+                webgazer.params.showFaceOverlay = false;
+                webgazer.params.showFaceFeedbackBox = false;
+
+                webgazer.setGazeListener((data, elapsedTime) => {
+                    if (!isPaused && data !== null) {
+                        const gazeDotElement = document.querySelector('#webgazerGazeDot');
+                        const imageContainer = document.getElementById('imageContainer');
+                        const rect = imageContainer.getBoundingClientRect();
+
+                        const relativeX = data.x - rect.left;
+                        const relativeY = data.y - rect.top;
+
+                        if (relativeX >= 0 && relativeY >= 0 && relativeX <= rect.width && relativeY <= rect.height) {
+                            gazeDotElement.style.transform = `translate3d(${relativeX}px, ${relativeY}px, 0)`;
+                        }
+
+                        gazeData.push({ x: data.x, y: data.y, timestamp: elapsedTime });
+                    }
+                }).begin();
+
+                resolve();
+            });
+        }
+
+        function startStudy() {
+            initializeWebGazer().then(() => {
+                setTimeout(() => {
+                    instructionContainer.style.display = 'none'; // Hide instructions after 15 seconds
+                    showNextImage(); // Start the study after the instructions
+                }, 15000);
+            });
+        }
+
+        function showNextImage() {
+            if (currentImageIndex >= images.length) {
+                completeStudy();
+                return;
+            }
+
+            const image = images[currentImageIndex];
+            const imageElement = document.createElement('img');
+            imageElement.src = image.src;
+            imageElement.style.width = '1792px';
+            imageElement.style.height = '1024px';
+            imageElement.style.objectFit = 'none';
+
+            const imageContainer = document.getElementById('imageContainer');
+            imageContainer.innerHTML = '';
+            imageContainer.appendChild(imageElement);
+
+            showProgressBar(image.duration);
+            currentImageIndex++;
+            imageStartTime = performance.now();
+        }
+
+        function showProgressBar(duration) {
+            let timeElapsed = 0;
+            progressBarFill.style.width = '0%';
+
+            function updateProgressBar() {
+                if (isPaused) return;
+
+                timeElapsed += 100;
+                const percentage = Math.min((timeElapsed / duration) * 100, 100);
+                progressBarFill.style.width = percentage + '%';
+
+                if (percentage >= 100) {
+                    clearInterval(progressBarAnimationFrame);
+                    completeCurrentImage();
+                }
+            }
+
+            progressBarAnimationFrame = setInterval(updateProgressBar, 100);
+        }
+
+        function completeCurrentImage() {
+            if (currentImageIndex < images.length) {
+                showNextImage();
+            } else {
+                completeStudy();
+            }
+        }
+
+        function toggleStudy() {
+            isPaused = !isPaused;
+            const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+            const endStudyBtn = document.getElementById('endStudyBtn');
+
+            pauseResumeBtn.innerText = isPaused ? 'Resume Study' : 'Pause Study';
+            if (isPaused) {
+                document.getElementById('skipBtn').style.display = 'none';
+                endStudyBtn.style.display = 'inline-block'; // Show End Study button
+            } else {
+                document.getElementById('skipBtn').style.display = 'inline-block';
+                endStudyBtn.style.display = 'none'; // Hide End Study button
+            }
+        }
+
+        function skipImage() {
+            clearInterval(progressBarAnimationFrame);
+            completeCurrentImage();
+        }
+
+        function endStudy() {
+            completeStudy();
+            downloadData(); // Automatically download data
+            setTimeout(() => {
+                window.location.href = './results.html'; // Redirect to results page after download
+            }, 1500); // Wait 1.5 second for download to complete
+        }
+
+        function completeStudy() {
+            clearInterval(progressBarAnimationFrame);
+            instructionContainer.style.display = 'none';
+            completionMessage.style.display = 'block';
+        }
+
+        function downloadData() {
+            const blob = new Blob([JSON.stringify(gazeData)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'gaze_data.json';
+            link.click();
+        }
+
+        function navigateToResults() {
+            window.location.href = './results.html';
+        }
+
+        startStudy();
+    </script>
+
+</body>
+</html>

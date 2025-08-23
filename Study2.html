@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGazer Eye Tracking Study</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            justify-content: center;
+        }
+        #instructionContainer {
+            background: white;
+            border-radius: 12px;
+            padding: 30px 40px;
+            max-width: 600px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #instructionContainer h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        #instructionContainer ul {
+            text-align: left;
+            margin: 20px 0;
+            color: #555;
+        }
+        #instructionContainer ul li {
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .countdown {
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 18px;
+            color: #007bff;
+        }
+        #startStudyBtn {
+            margin-top: 25px;
+            padding: 14px 30px;
+            font-size: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #startStudyBtn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        #startStudyBtn:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+        /* Hide the main study container initially */
+        #mainContainer {
+            display: none;
+            margin-top: 30px;
+            text-align: center;
+        }
+        #pauseHint {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        #imageContainer {
+            width: 600px;
+            height: 400px;
+            margin: 20px auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        #currentImage {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #progressBar {
+            width: 600px;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        #progressFill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        #statusText {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #555;
+        }
+        #calibrationContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #calibrationPoints {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            margin: 20px auto;
+        }
+        .calibration-point {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+        }
+        #calibrationHint {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div id="instructionContainer">
+    <h2>Welcome to the WebGazer Eye Tracking Study</h2>
+    <p>Thank you for participating in our research study.</p>
+    <p>Instructions:</p>
+    <ul>
+        <li>Please sit approximately 50-60 cm from your screen</li>
+        <li>Ensure your face is well-lit and clearly visible</li>
+        <li>Try to keep your head as still as possible during the study</li>
+        <li>Look naturally at the images as they appear</li>
+        <li>Press 'P' to pause/resume the study if needed</li>
+    </ul>
+    <p class="countdown" id="countdown">Starting in 15 seconds...</p>
+    <button id="startStudyBtn" style="display:none;">Start Study</button>
+</div>
+
+<div id="mainContainer">
+    <h3>Study in Progress...</h3>
+    <div id="progressBar">
+        <div id="progressFill"></div>
+    </div>
+    <p id="statusText">Calibrating eye tracker...</p>
+    <div id="calibrationContainer">
+        <div id="calibrationPoints">
+            <!-- Calibration points will be added here -->
+        </div>
+        <p id="calibrationHint">Please click on each point as it appears to calibrate the eye tracker</p>
+    </div>
+    <div id="imageContainer" style="display:none;">
+        <img id="currentImage" src="" alt="Study image">
+    </div>
+    <p id="pauseHint">Press 'P' to pause/resume.</p>
+</div>
+
+<!-- Load WebGazer.js from CDN -->
+<script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+
+<script>
+    // Config object
+    const STUDY_CONFIG = {
+        instructionTime: 15000, // 15 seconds instruction countdown
+        imageDisplayTime: 5000, // ms per image
+        calibrationPoints: 5, // Number of calibration points
+        totalImages: 10
+    };
+
+    // Sample images (replace with your actual image URLs)
+    const SAMPLE_IMAGES = [
+        'https://placehold.co/600x400/007bff/white?text=Image+1',
+        'https://placehold.co/600x400/28a745/white?text=Image+2',
+        'https://placehold.co/600x400/dc3545/white?text=Image+3',
+        'https://placehold.co/600x400/ffc107/white?text=Image+4',
+        'https://placehold.co/600x400/6f42c1/white?text=Image+5',
+        'https://placehold.co/600x400/20c997/white?text=Image+6',
+        'https://placehold.co/600x400/fd7e14/white?text=Image+7',
+        'https://placehold.co/600x400/6c757d/white?text=Image+8',
+        'https://placehold.co/600x400/0dcaf0/white?text=Image+9',
+        'https://placehold.co/600x400/6610f2/white?text=Image+10'
+    ];
+
+    // State variables
+    let isTracking = false;
+    let isPaused = false;
+    let gazeData = [];
+    let currentImageIndex = 0;
+    let calibrationIndex = 0;
+
+    // DOM elements
+    const instructionContainer = document.getElementById('instructionContainer');
+    const countdownElement = document.getElementById('countdown');
+    const startStudyBtn = document.getElementById('startStudyBtn');
+    const mainContainer = document.getElementById('mainContainer');
+    const calibrationContainer = document.getElementById('calibrationContainer');
+    const calibrationPoints = document.getElementById('calibrationPoints');
+    const calibrationHint = document.getElementById('calibrationHint');
+    const imageContainer = document.getElementById('imageContainer');
+    const currentImage = document.getElementById('currentImage');
+    const progressFill = document.getElementById('progressFill');
+    const statusText = document.getElementById('statusText');
+
+    // Show instructions with countdown, then show start button
+    function showInstructions() {
+        let countdownTime = STUDY_CONFIG.instructionTime / 1000;
+        countdownElement.textContent = `Starting in ${countdownTime} seconds...`;
+        startStudyBtn.style.display = 'none';
+
+        const countdownInterval = setInterval(() => {
+            countdownTime--;
+            if (countdownTime > 0) {
+                countdownElement.textContent = `Starting in ${countdownTime} seconds...`;
+            } else {
+                clearInterval(countdownInterval);
+                countdownElement.textContent = 'Click "Start Study" when ready';
+                startStudyBtn.style.display = 'inline-block';
+            }
+        }, 1000);
+    }
+
+    // Initialize WebGazer
+    function initializeWebGazer() {
+        return new Promise((resolve, reject) => {
+            console.log("Initializing WebGazer...");
+
+            webgazer.params.showVideoPreview = true;
+            webgazer.params.showFaceOverlay = true;
+            webgazer.params.showFaceFeedbackBox = true;
+            webgazer.params.applyKalmanFilter = true;
+            webgazer.params.smoothing = true;
+            webgazer.params.faceOverlay = true;
+            webgazer.params.faceFeedbackBox = true;
+
+            webgazer.setGazeListener((data, elapsedTime) => {
+                if (data && isTracking && !isPaused) {
+                    processGazeData(data, elapsedTime);
+                }
+            });
+
+            webgazer.begin()
+                .then(() => {
+                    console.log("WebGazer initialized successfully");
+                    resolve();
+                })
+                .catch(error => {
+                    console.error("Error initializing WebGazer:", error);
+                    alert("Error initializing eye tracker. Please check your camera permissions and refresh the page.");
+                    reject(error);
+                });
+        });
+    }
+
+    // Process gaze data
+    function processGazeData(data, elapsedTime) {
+        // Store gaze data with timestamp and current image
+        gazeData.push({
+            x: data.x,
+            y: data.y,
+            time: elapsedTime,
+            imageIndex: currentImageIndex
+        });
+    }
+
+    // Setup calibration points
+    function setupCalibration() {
+        calibrationPoints.innerHTML = '';
+       
+        // Define positions for calibration points (corners and center)
+        const positions = [
+            { x: 50, y: 50 },     // Top-left
+            { x: 50, y: 50 },     // Top-right (will be updated)
+            { x: 50, y: 50 },     // Bottom-right (will be updated)
+            { x: 50, y: 50 },     // Bottom-left (will be updated)
+            { x: 50, y: 50 }      // Center (will be updated)
+        ];
+       
+        // Update positions based on container size
+        const rect = calibrationPoints.getBoundingClientRect();
+        positions[0] = { x: 30, y: 30 }; // Top-left
+        positions[1] = { x: rect.width - 30, y: 30 }; // Top-right
+        positions[2] = { x: rect.width - 30, y: rect.height - 30 }; // Bottom-right
+        positions[3] = { x: 30, y: rect.height - 30 }; // Bottom-left
+        positions[4] = { x: rect.width / 2, y: rect.height / 2 }; // Center
+       
+        // Create points
+        positions.forEach((pos, index) => {
+            const point = document.createElement('div');
+            point.className = 'calibration-point';
+            point.style.left = `${pos.x}px`;
+            point.style.top = `${pos.y}px`;
+            point.style.display = index === 0 ? 'block' : 'none';
+            point.dataset.index = index;
+            calibrationPoints.appendChild(point);
+        });
+       
+        // Add click handlers
+        document.querySelectorAll('.calibration-point').forEach(point => {
+            point.addEventListener('click', handleCalibrationClick);
+        });
+       
+        // Show first point
+        calibrationIndex = 0;
+        calibrationHint.textContent = `Please click on point ${calibrationIndex + 1} of ${STUDY_CONFIG.calibrationPoints}`;
+    }
+
+    // Handle calibration point click
+    function handleCalibrationClick(e) {
+        const index = parseInt(e.target.dataset.index);
+       
+        // Hide current point
+        e.target.style.display = 'none';
+       
+        // Show next point or finish calibration
+        if (index < STUDY_CONFIG.calibrationPoints - 1) {
+            const nextPoint = document.querySelector(`.calibration-point[data-index="${index + 1}"]`);
+            nextPoint.style.display = 'block';
+            calibrationIndex = index + 1;
+            calibrationHint.textContent = `Please click on point ${calibrationIndex + 1} of ${STUDY_CONFIG.calibrationPoints}`;
+        } else {
+            // Calibration complete
+            finishCalibration();
+        }
+    }
+
+    // Finish calibration and start the study
+    function finishCalibration() {
+        calibrationContainer.style.display = 'none';
+        imageContainer.style.display = 'block';
+        statusText.textContent = 'Study in progress';
+        isTracking = true;
+        startImagePresentation();
+    }
+
+    // Start presenting images
+    function startImagePresentation() {
+        if (currentImageIndex >= STUDY_CONFIG.totalImages) {
+            endStudy();
+            return;
+        }
+       
+        // Update progress
+        progressFill.style.width = `${(currentImageIndex / STUDY_CONFIG.totalImages) * 100}%`;
+       
+        // Show current image
+        currentImage.src = SAMPLE_IMAGES[currentImageIndex];
+        statusText.textContent = `Image ${currentImageIndex + 1} of ${STUDY_CONFIG.totalImages}`;
+       
+        // Schedule next image
+        setTimeout(() => {
+            currentImageIndex++;
+            startImagePresentation();
+        }, STUDY_CONFIG.imageDisplayTime);
+    }
+
+    // End the study
+    function endStudy() {
+        isTracking = false;
+        statusText.textContent = 'Study complete! Thank you for participating.';
+        progressFill.style.width = '100%';
+       
+        // In a real study, you would send the gazeData to your server here
+        console.log('Study completed. Gaze data:', gazeData);
+        alert('Study completed! Thank you for your participation.');
+    }
+
+    // Pause/resume toggle on keypress 'P'
+    window.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'p') {
+            if (!isTracking) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                statusText.textContent = 'Study paused. Press P to resume.';
+                console.log("Study paused");
+            } else {
+                statusText.textContent = 'Study in progress';
+                console.log("Study resumed");
+            }
+        }
+    });
+
+    // Start study button click handler
+    startStudyBtn.addEventListener('click', async () => {
+        startStudyBtn.disabled = true;
+        try {
+            await initializeWebGazer();
+            instructionContainer.style.display = 'none';
+            mainContainer.style.display = 'block';
+            setupCalibration();
+        } catch (err) {
+            startStudyBtn.disabled = false;
+            alert('Cannot start the study without camera access. Please allow camera permissions and try again.');
+        }
+    });
+
+    // On window load start instruction countdown
+    window.addEventListener('load', () => {
+        showInstructions();
+    });
+
+</script>
+
+</body>
+</html>
