@@ -14,59 +14,62 @@
 <!-- WebGazer -->
 <script src="./webgazer.js"></script>
 
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<!-- Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
 <style>
-body { position: relative; margin:0; overflow:hidden; }
+body { position: relative; }
 .red-dot {
   position: absolute;
   background: red;
-  border-radius: 50%;
+  border-radius: 100%;
+  opacity: 0.7;
   width: 15px;
   height: 15px;
-  pointer-events: none;
-  transform: scale(0.5);
-  opacity: 0;
-  transition: transform 0.3s ease, opacity 0.5s ease;
 }
+#calibrationImage { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; }
 #subjectInfo {
   color: #FFFFFF; font-size: 1.5em; font-weight: bold;
-  position: absolute; top:10px; right:20px; z-index:10;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  position: absolute; top: 10px; right: 20px; z-index: 10;
 }
 .navbar { background-color: #2E3B4E; }
 .navbar a { color: #FFFFFF; }
-#Accuracy { font-size: 1.2em; font-weight:bold; animation:pulse 1.5s infinite; }
-@keyframes pulse { 0%{transform:scale(1);color:red;}50%{transform:scale(1.05);color:orange;}100%{transform:scale(1);color:green;} }
-
-.calibrationDiv { position:absolute; top:0; left:0; width:100%; height:100%; }
-.Calibration {
-  width: 25px; height:25px; border-radius:50%; background:blue;
-  position:absolute; transition: background 0.3s ease, transform 0.3s ease;
-}
+#Accuracy { font-size: 1.2em; font-weight: bold; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { transform: scale(1); color: red; } 50% { transform: scale(1.05); color: orange; } 100% { transform: scale(1); color: green; } }
+.calibrationDiv { position: absolute; top:0; left:0; width:100%; height:100%; }
+.Calibration { width: 25px; height: 25px; border-radius: 50%; background: blue; position: absolute; }
 </style>
 </head>
 <body>
-
+<canvas id="plotting_canvas" width="500" height="500" style="cursor:crosshair;"></canvas>
 <div id="subjectInfo"></div>
 
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-  <div class="container-fluid">
-    <div class="collapse navbar-collapse" id="myNavbar">
-      <ul class="navbar-nav me-auto">
-        <li id="Accuracy" class="nav-item"><a class="nav-link">Not yet Calibrated</a></li>
-        <li class="nav-item"><a onclick="Restart()" href="#" class="nav-link">Recalibrate</a></li>
-      </ul>
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="helpBtn nav-link" href="#">Start Study</a></li>
-        <li class="nav-item"><a class="nav-link" id="toggleCamBtn" href="#">Show/Hide Camera</a></li>
-      </ul>
-    </div>
+<div class="container-fluid">
+  <div class="collapse navbar-collapse" id="myNavbar">
+    <ul class="navbar-nav me-auto">
+      <li id="Accuracy" class="nav-item"><a class="nav-link">Not yet Calibrated</a></li>
+      <li class="nav-item"><a onclick="Restart()" href="#" class="nav-link">Recalibrate</a></li>
+    </ul>
+    <ul class="navbar-nav ms-auto">
+      <li class="nav-item"><a class="helpBtn nav-link" onclick="startStudy()" href="#">Start Study</a></li>
+      <li class="nav-item"><a class="nav-link" id="toggleCamBtn" href="#">Show/Hide Camera</a></li>
+    </ul>
   </div>
+</div>
 </nav>
 
 <div class="calibrationDiv">
-  <!-- 17 Calibration Points auto-positioned -->
   <input type="button" class="Calibration" id="Pt1">
   <input type="button" class="Calibration" id="Pt2">
   <input type="button" class="Calibration" id="Pt3">
@@ -86,12 +89,36 @@ body { position: relative; margin:0; overflow:hidden; }
   <input type="button" class="Calibration" id="Pt17">
 </div>
 
+<div id="helpModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body">
+        <img src="calibration.jpg" width="100%" height="100%">
+        <p><b>User should sit closer to the webcamera to attain maximum accuracy</b></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="Restart()">Calibrate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<img id="calibrationImage" src="demo.jpeg" width="500" height="500">
+
+<!-- Local JS -->
+<script src="./js/main.js"></script>
+<script src="./js/calibration.js"></script>
+<script src="./js/precision_calculation.js"></script>
+<script src="./js/precision_store_points.js"></script>
+<script src="./js/resize_canvas.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
 let gazeData = [];
 let isTracking = false;
 let startTime;
-let calibrationIndex = 0;
-const totalPoints = 17;
 
 function startWebGazer() {
   isTracking = true;
@@ -101,7 +128,7 @@ function startWebGazer() {
   // Force video container visible
   setTimeout(() => {
     const videoContainer = document.getElementById('webgazerVideoContainer');
-    if(videoContainer){
+    if (videoContainer) {
       videoContainer.style.display = 'block';
       videoContainer.style.position = 'fixed';
       videoContainer.style.top = '10px';
@@ -110,105 +137,48 @@ function startWebGazer() {
       videoContainer.style.height = '240px';
       videoContainer.style.zIndex = 9999;
     }
-  },100);
+  }, 100);
 
-  webgazer.setGazeListener((data)=>{
-    if(data && isTracking){
-      createRedDot(data.x,data.y);
-      gazeData.push({x:data.x, y:data.y, time:Date.now()-startTime});
+  webgazer.setGazeListener((data) => {
+    if (data && isTracking) {
+      createRedDot(data.x, data.y);
+      gazeData.push({ x: data.x, y: data.y, time: Date.now() - startTime });
     }
   }).begin();
 }
 
-// Red dot animation
-function createRedDot(x,y){
-  const dot=document.createElement('div');
-  dot.className='red-dot';
-  dot.style.left=x+'px';
-  dot.style.top=y+'px';
+function createRedDot(x, y) {
+  const dot = document.createElement('div');
+  dot.classList.add('red-dot');
+  dot.style.left = x + 'px';
+  dot.style.top = y + 'px';
   document.body.appendChild(dot);
-  requestAnimationFrame(()=>{
-    dot.style.opacity='0.7';
-    dot.style.transform='scale(1)';
-  });
-  setTimeout(()=>{
-    dot.style.opacity='0';
-    dot.style.transform='scale(0.5)';
-    setTimeout(()=>dot.remove(),500);
-  },500);
+  setTimeout(() => dot.remove(), 1500);
 }
 
-// Auto-position calibration points in a grid-like layout
-function positionCalibrationPoints(){
-  const positions = [
-    [10,10],[50,10],[90,10],[10,50],[50,50],[90,50],
-    [10,90],[50,90],[90,90],[25,25],[75,25],[25,75],
-    [75,75],[50,15],[15,50],[85,50],[50,85]
-  ];
-  for(let i=1;i<=totalPoints;i++){
-    const pt=document.getElementById('Pt'+i);
-    pt.style.left=positions[i-1][0]+'%';
-    pt.style.top=positions[i-1][1]+'%';
-  }
-}
-
-// Highlight current calibration point
-function highlightCurrentPoint(){
-  for(let i=1;i<=totalPoints;i++){
-    const pt=document.getElementById('Pt'+i);
-    if(i===calibrationIndex+1){
-      pt.style.background='red';
-      pt.style.transform='scale(1.3)';
-    }else{
-      pt.style.background='blue';
-      pt.style.transform='scale(1)';
-    }
-  }
-}
-
-// Click-to-calibrate flow
-function calibrationClickFlow(){
-  highlightCurrentPoint();
-  for(let i=1;i<=totalPoints;i++){
-    const pt=document.getElementById('Pt'+i);
-    pt.onclick=()=>{
-      if(i-1===calibrationIndex){
-        calibrationIndex++;
-        if(calibrationIndex>=totalPoints){
-          Swal.fire('Calibration Complete!');
-        }else{
-          highlightCurrentPoint();
-        }
-      }
-    }
-  }
-}
-
-function startStudy(){
+function startStudy() {
   Swal.fire({
-    title:'Start the Study Now?',
-    icon:'info',
-    showCancelButton:true,
-    confirmButtonText:'OK'
-  }).then((res)=>{if(res.isConfirmed) window.location.href='study.html';});
+    title: 'Start the Study Now?',
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: 'OK'
+  }).then((result) => {
+    if (result.isConfirmed) window.location.href = 'study.html';
+  });
 }
 
 // Toggle camera
-document.getElementById('toggleCamBtn').addEventListener('click',()=>{
-  const videoContainer=document.getElementById('webgazerVideoContainer');
-  if(videoContainer) videoContainer.style.display=(videoContainer.style.display==='none')?'block':'none';
+document.getElementById('toggleCamBtn').addEventListener('click', () => {
+  const videoContainer = document.getElementById('webgazerVideoContainer');
+  if (videoContainer) videoContainer.style.display = (videoContainer.style.display === 'none') ? 'block' : 'none';
 });
 
-// Initialize
-window.onload=()=>{
-  positionCalibrationPoints();
-  calibrationClickFlow();
-  startWebGazer();
-  const startStudyBtn=document.querySelector('.helpBtn');
-  if(startStudyBtn) startStudyBtn.addEventListener('click',startStudy);
-};
-</script>
+// Attach startStudy
+const startStudyBtn = document.querySelector('.helpBtn');
+if (startStudyBtn) startStudyBtn.addEventListener('click', startStudy);
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+// Start WebGazer automatically
+window.onload = () => startWebGazer();
+</script>
 </body>
 </html>
