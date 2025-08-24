@@ -5,29 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GazeStudy Calibration</title>
 
-  <!-- ✅ Bootstrap CSS from CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-
-  <!-- ✅ Your stylesheet -->
+  <!-- Custom CSS -->
   <link rel="stylesheet" type="text/css" href="./css/style.css">
 
-  <!-- ✅ WebGazer from official CDN -->
-  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+  <!-- Bootstrap CSS from CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- ✅ SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- WebGazer -->
+  <script src="./webgazer.js"></script>
 
-  <!-- ✅ html2canvas -->
+  <!-- html2canvas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 
-  <!-- ✅ SheetJS (xlsx) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <!-- ✅ Plotly -->
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <!-- XLSX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
-    body { position: relative; }
+    body {
+      position: relative;
+    }
+
     .red-dot {
       position: absolute;
       background: red;
@@ -35,8 +32,8 @@
       opacity: 0.7;
       width: 15px;
       height: 15px;
-      pointer-events: none;
     }
+
     #calibrationImage {
       display: none;
       position: fixed;
@@ -45,8 +42,11 @@
       transform: translate(-50%, -50%);
       z-index: 9999;
     }
-    .hidden { display: none; }
-    /* Subject Name Styling */
+
+    .hidden {
+      display: none;
+    }
+
     #subjectInfo {
       color: #FFFFFF;
       font-size: 1.5em;
@@ -57,30 +57,25 @@
       right: 20px;
       z-index: 10;
     }
-    /* Navbar Styling */
-    .navbar { background-color: #2E3B4E; }
-    .navbar a { color: #FFFFFF; }
-    /* Accuracy Indicator */
+
+    .navbar {
+      background-color: #2E3B4E;
+    }
+
+    .navbar a {
+      color: #FFFFFF;
+    }
+
     #Accuracy {
       font-size: 1.2em;
       font-weight: bold;
       animation: pulse 1.5s infinite;
     }
+
     @keyframes pulse {
-      0%   { transform: scale(1);   color: red; }
-      50%  { transform: scale(1.05); color: orange; }
-      100% { transform: scale(1);   color: green; }
-    }
-    .calibrationDiv {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-    }
-    .Calibration {
-      width: 25px; height: 25px;
-      border-radius: 50%;
-      background: blue;
-      position: absolute;
+      0% { transform: scale(1); color: red; }
+      50% { transform: scale(1.05); color: orange; }
+      100% { transform: scale(1); color: green; }
     }
   </style>
 </head>
@@ -90,26 +85,27 @@
 <!-- Display Subject's Name -->
 <div id="subjectInfo"></div>
 
-<nav id="webgazerNavbar" class="navbar navbar-expand-lg navbar-default navbar-fixed-top">
+<nav id="webgazerNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top">
   <div class="container-fluid">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#myNavbar">
-        <span class="navbar-toggler-icon">Menu</span>
+      <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#myNavbar">
+        <span class="navbar-toggler-icon"></span>
       </button>
     </div>
     <div class="collapse navbar-collapse" id="myNavbar">
-      <ul class="nav navbar-nav">
-        <li id="Accuracy"><a>Not yet Calibrated</a></li>
-        <li><a onclick="Restart()" href="#">Recalibrate</a></li>
+      <ul class="navbar-nav me-auto">
+        <li id="Accuracy" class="nav-item"><a class="nav-link">Not yet Calibrated</a></li>
+        <li class="nav-item"><a onclick="Restart()" href="#" class="nav-link">Recalibrate</a></li>
       </ul>
-      <ul class="nav navbar-nav navbar-right">
-        <li><a class="helpBtn" onclick="startStudy()" href="#"><span class="glyphicon glyphicon-cog"></span> Start Study</a></li>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="helpBtn nav-link" onclick="startStudy()" href="#"><span class="glyphicon glyphicon-cog"></span> Start Study</a></li>
       </ul>
     </div>
   </div>
 </nav>
 
 <div class="calibrationDiv">
+  <!-- Calibration Points -->
   <input type="button" class="Calibration" id="Pt1">
   <input type="button" class="Calibration" id="Pt2">
   <input type="button" class="Calibration" id="Pt3">
@@ -138,8 +134,8 @@
         <p><b>User should sit closer to the webcamera to attain maximum accuracy</b></p>
       </div>
       <div class="modal-footer">
-        <button id="closeBtn" type="button" class="btn btn-default" data-bs-dismiss="modal">Close & load saved model</button>
-        <button type="button" id="start_calibration" class="btn btn-primary" data-bs-dismiss="modal" onclick="Restart()">Calibrate</button>
+        <button id="closeBtn" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close & load saved model</button>
+        <button type="button" id='start_calibration' class="btn btn-primary" data-bs-dismiss="modal" onclick="Restart()">Calibrate</button>
       </div>
     </div>
   </div>
@@ -147,98 +143,56 @@
 
 <img id="calibrationImage" src="demo.jpeg" width="500" height="500">
 
-<!-- ✅ External JS files (same as first example) -->
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Local JS -->
 <script src="./js/main.js"></script>
 <script src="./js/calibration.js"></script>
 <script src="./js/precision_calculation.js"></script>
 <script src="./js/precision_store_points.js"></script>
 <script src="./js/resize_canvas.js"></script>
 
-<!-- ✅ Bootstrap JS bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap Bundle JS (with Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
-  // Initialize WebGazer with correct configuration (same as first example)
-  webgazer.setGazeListener(function(data, elapsedTime) {
-    if (data) {
-      var x = data.x;
-      var y = data.y;
-      // Create red dot at gaze position
-      createRedDot(x, y);
-    }
-  });
-  
-  // Initialize WebGazer with TFFacemesh tracker (same as first example)
-  webgazer
-    .setGazeListener(function(data, elapsedTime) {
-      if (data) {
-        var x = data.x;
-        var y = data.y;
-        // Create red dot at gaze position
-        createRedDot(x, y);
-      }
-    })
-    .begin();
-
   let gazeData = [];
   let currentImageIndex = 0;
   let startTime;
   let isTracking = false;
 
-  // ✅ Start WebGazer tracking
   function startWebGazer() {
     webgazer.params.applyKalmanFilter = true;
-    // Kalman filter is selected by default
-    document.querySelector('a[onclick="webgazer.applyKalmanFilter(!webgazer.params.applyKalmanFilter)"]').style.display = 'none';
 
     webgazer.setGazeListener((data, elapsedTime) => {
       if (data !== null && isTracking) {
         createRedDot(data.x, data.y);
-        const transformValue = document.querySelector('#webgazerGazeDot')?.style.transform || "";
+        const transformValue = document.querySelector('#webgazerGazeDot').style.transform;
         const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
         const matches = transformValue.match(regex);
         const x = matches ? parseFloat(matches[1]) : null;
         const y = matches ? parseFloat(matches[2]) : null;
+
         gazeData.push({ x, y, time: Date.now() - startTime });
       }
     }).begin();
   }
 
-  // ✅ Create red dot on screen
   function createRedDot(x, y) {
     const redDot = document.createElement('div');
     redDot.classList.add('red-dot');
     redDot.style.left = x + 'px';
     redDot.style.top = y + 'px';
     document.body.appendChild(redDot);
-    setTimeout(() => redDot.remove(), 1500); // auto-remove after 1.5s
   }
 
-  // ✅ Restart calibration
-  function Restart() {
-    Swal.fire({
-      title: "Recalibration",
-      text: "Click OK to restart calibration.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "OK",
-      cancelButtonText: "Cancel"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        gazeData = [];
-        isTracking = true;
-        startTime = Date.now();
-        startWebGazer();
-        document.getElementById("Accuracy").innerHTML = "<a>Calibrating...</a>";
-      }
-    });
-  }
-
-  // ✅ Start the study
   function startStudy() {
     Swal.fire({
       title: 'Start the Study Now?',
-      text: 'Click OK to start the study or Cancel to remain in calibration state.',
       icon: 'info',
       showCancelButton: true,
       confirmButtonText: 'OK',
@@ -250,16 +204,10 @@
     });
   }
 
-  // ✅ Attach event listener to Start Study button
   const startStudyButton = document.querySelector('.helpBtn');
   if (startStudyButton) {
     startStudyButton.addEventListener('click', startStudy);
   }
-
-  // ✅ Start WebGazer automatically on load
-  window.onload = function() {
-    startWebGazer();
-  };
 </script>
 </body>
 </html>
