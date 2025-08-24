@@ -40,6 +40,7 @@ button { padding:10px 20px; cursor:pointer; }
 </div>
 
 <script>
+// --- VARIABLES ---
 let gazeData = [];
 let currentImageIndex = 0;
 let isPaused = false;
@@ -60,6 +61,7 @@ const imageContainer = document.getElementById('imageContainer');
 const progressBarFill = document.getElementById('progressBarFill');
 const completionMessage = document.getElementById('completionMessage');
 
+// --- WEBGAZER INITIALIZATION ---
 function startWebGazerStudy() {
     webgazer.params.applyKalmanFilter = true;
     webgazer.params.showVideoPreview = true;
@@ -93,6 +95,7 @@ function startWebGazerStudy() {
     });
 }
 
+// --- IMAGE DISPLAY FLOW ---
 function showNextImage(){
     if(currentImageIndex >= images.length) return completeStudy();
 
@@ -109,6 +112,7 @@ function showNextImage(){
     currentImageIndex++;
 }
 
+// --- PROGRESS BAR ---
 function showProgressBar(duration){
     let timeElapsed = 0;
     progressBarFill.style.width='0%';
@@ -124,8 +128,10 @@ function showProgressBar(duration){
     update();
 }
 
+// --- COMPLETE IMAGE ---
 function completeCurrentImage(){ showNextImage(); }
 
+// --- PAUSE / RESUME ---
 function toggleStudy(){
     isPaused = !isPaused;
     document.getElementById('pauseResumeBtn').innerText = isPaused ? 'Resume Study':'Pause Study';
@@ -133,23 +139,27 @@ function toggleStudy(){
     document.getElementById('endStudyBtn').style.display = isPaused ? 'inline-block':'none';
 }
 
+// --- SKIP IMAGE ---
 function skipImage(){
     clearTimeout(progressBarAnimationFrame);
     completeCurrentImage();
 }
 
+// --- END STUDY ---
 function endStudy(){
     completeStudy();
     downloadData();
     setTimeout(()=>window.location.href='./results.html',1500);
 }
 
+// --- COMPLETE STUDY ---
 function completeStudy(){
     clearTimeout(progressBarAnimationFrame);
     completionMessage.style.display='block';
     downloadData();
 }
 
+// --- DOWNLOAD DATA ---
 function downloadData(){
     const json = JSON.stringify({subject:subjectName, gazeData:gazeData},null,2);
     const blob = new Blob([json],{type:'application/json'});
@@ -161,8 +171,10 @@ function downloadData(){
     URL.revokeObjectURL(url);
 }
 
+// --- NAVIGATE TO RESULTS ---
 function navigateToResults(){ window.location.href='./results.html'; }
 
+// --- START STUDY ---
 window.onload = ()=>{ startWebGazerStudy(); };
 </script>
 
