@@ -171,6 +171,7 @@ function startWebGazer() {
   webgazer.setGazeListener((data, elapsedTime) => {
     if (data !== null && isTracking) {
       createRedDot(data.x, data.y);
+
       const transformValue = document.querySelector('#webgazerGazeDot').style.transform;
       const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
       const matches = transformValue.match(regex);
@@ -179,19 +180,26 @@ function startWebGazer() {
 
       gazeData.push({ x, y, time: Date.now() - startTime });
     }
-  }).begin();
+  }).begin().then(() => {
+    // 🔹 Force webcam video container to stay visible
+    const videoContainer = document.getElementById('webgazerVideoContainer');
+    if (videoContainer) {
+      videoContainer.style.display = 'block';
+      videoContainer.style.position = 'fixed';
+      videoContainer.style.top = '10px';
+      videoContainer.style.left = '10px';
+      videoContainer.style.width = '320px';
+      videoContainer.style.height = '240px';
+      videoContainer.style.zIndex = 9999;
+    }
 
-  // 🔹 Force webcam video to be visible
-  const video = document.getElementById('webgazerVideoFeed');
-  if (video) {
-    video.style.display = 'block';  // default is "none"
-    video.style.position = 'fixed';
-    video.style.top = '10px';
-    video.style.left = '10px';
-    video.style.width = '320px';
-    video.style.height = '240px';
-    video.style.zIndex = 1000;
-  }
+    const videoFeed = document.getElementById('webgazerVideoFeed');
+    if (videoFeed) {
+      videoFeed.style.display = 'block';
+      videoFeed.style.width = '100%';
+      videoFeed.style.height = '100%';
+    }
+  });
 }
 
 
