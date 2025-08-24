@@ -1,411 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGazer Eye Tracking Study</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="webgazer.js"></script>
-    <link rel="stylesheet" type="text/css" href="./css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebGazer Eye Tracking Study</title>
 
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-            background-color: white;
-        }
+<link rel="stylesheet" href="./css/style.css">
+<script src="webgazer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-        /* WebGazer's default dot will be shown */
-        .webgazerGazeDot {
-            /* WebGazer's default dot styling */
-        }
-
-        #imageContainer, #instructionContainer {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border: 1px solid red;
-        }
-
-        #instructionContainer {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background-color: white;
-            color: black;
-            padding: 20px;
-            border: 2px solid black;
-            z-index: 100000;
-        }
-
-        button {
-            padding: 10px 20px;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        #downloadDataBtn {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background-color: rgb(2, 255, 213);
-        }
-
-        #pauseResumeBtn {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgb(206, 255, 31);
-        }
-
-        #skipBtn {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            background-color: rgb(255, 100, 100);
-        }
-        #endStudyBtn {
-            position: absolute;
-            bottom: 50px; /* Adjust the bottom position to move it above the Pause Study button */
-            right: 20px;
-            background-color: rgb(255, 50, 50);
-            display: none; /* Initially hidden */
-        }
-
-        
-
-        #progressBar {
-            width: 80%;
-            height: 20px;
-            background-color: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            margin: 0;
-            z-index: 100000;
-        }
-
-        #progressBarFill {
-            height: 100%;
-            background-color: blue;
-            width: 0%;
-            transition: width 0.5s;
-        }
-
-        #completionMessage {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            color: black;
-            padding: 20px;
-            border: 2px solid black;
-            display: none;
-            z-index: 100000;
-        }
-    </style>
+<style>
+body, html { margin:0; padding:0; height:100%; overflow:hidden; background:white; }
+#imageContainer { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+button { padding:10px 20px; cursor:pointer; }
+#downloadDataBtn { position:absolute; bottom:10px; left:10px; background:rgb(2,255,213);}
+#pauseResumeBtn { position:absolute; bottom:10px; right:10px; background:rgb(206,255,31);}
+#skipBtn { position:absolute; top:10px; right:20px; background:rgb(255,100,100);}
+#endStudyBtn { position:absolute; bottom:50px; right:20px; background:rgb(255,50,50); display:none;}
+#progressBar { width:80%; height:20px; background:#e0e0e0; border-radius:10px; overflow:hidden; position:fixed; bottom:20px; left:50%; transform:translateX(-50%);}
+#progressBarFill { height:100%; background:blue; width:0%; transition:width 0.2s;}
+#completionMessage { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; color:black; padding:20px; border:2px solid black; display:none; z-index:1000;}
+</style>
 </head>
 <body>
 
-    <div id="instructionContainer">
-        <p>Welcome to the WebGazer Eye Tracking Study.</p>
-        <p>Instructions:</p>
-        <ul>
-            <li>Look at the center of the screen.</li>
-            <li>Follow the images as they appear.</li>
-            <li>Ensure you are comfortable and seated properly.</li>
-            <li>Press 'P' to pause/resume the study.</li>
-            <li>Use the buttons to download data or skip images.</li>
-        </ul>
-    </div>
+<div id="imageContainer"></div>
 
-    <div id="imageContainer"></div>
-    <button id="downloadDataBtn" onclick="downloadData()">Download</button>
-    <button id="pauseResumeBtn" onclick="toggleStudy()">Pause Study</button>
-    <button id="skipBtn" onclick="skipImage()">Skip Image</button>
-    <button id="endStudyBtn" onclick="endStudy()">End Study</button> <!-- New End Study Button -->
-    <div id="progressBar"><div id="progressBarFill"></div></div>
-    
-    <div id="completionMessage">
-        <p>Study Completed!</p>
-        <p style="color: red; font-weight: bold;">Please download your data.</p> <!-- Updated the styling here -->
-        <button onclick="navigateToResults()">Go to Results</button>
-    </div>
-    
+<button id="downloadDataBtn" onclick="downloadData()">Download</button>
+<button id="pauseResumeBtn" onclick="toggleStudy()">Pause Study</button>
+<button id="skipBtn" onclick="skipImage()">Skip Image</button>
+<button id="endStudyBtn" onclick="endStudy()">End Study</button>
 
-    <script>
+<div id="progressBar"><div id="progressBarFill"></div></div>
 
+<div id="completionMessage">
+  <p>Study Completed!</p>
+  <p style="color:red;font-weight:bold;">Please download your gaze data.</p>
+  <button onclick="navigateToResults()">Go to Results</button>
+</div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCC874r-uUFL58zLhRo84k6mu_IWc8a9Lg",
-            authDomain: "final-f2562.firebaseapp.com",
-            databaseURL: "https://final-f2562-default-rtdb.firebaseio.com",
-            projectId: "final-f2562",
-            storageBucket: "final-f2562.appspot.com",
-            messagingSenderId: "536504977555",
-            appId: "1:536504977555:web:a8f3599d6eb42dbee6e566",
-            measurementId: "G-MZX5YF2GT8"
-        };
+<script>
+let gazeData = [];
+let currentImageIndex = 0;
+let isPaused = false;
+let imageTimer;
+let imageStartTime;
+let progressBarAnimationFrame;
+let subjectName = sessionStorage.getItem('subjectName') || prompt("Enter subject name:");
+if(!subjectName) subjectName = "Unnamed_Subject";
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+const images = [
+  { src:'assets/1.webp', duration:10000 },
+  { src:'assets/3.png', duration:10000 },
+  { src:'assets/4.webp', duration:10000 },
+  { src:'assets/5.webp', duration:10000 },
+];
 
-        let gazeData = [];
-        let currentImageIndex = 0;
-        let isPaused = false;
-        let imageTimer;
-        let imageStartTime;
-        let imageEndTime;
-        let imageDisplayLog = [];
-        let progressBarFill = document.getElementById('progressBarFill');
-        let instructionContainer = document.getElementById('instructionContainer');
-        let completionMessage = document.getElementById('completionMessage');
-        let progressBarAnimationFrame;
-        let subjectName = prompt("Please enter the subject name:");
-        if (!subjectName) {
-            subjectName = "Unnamed_Subject"; // Fallback to a default name if the user doesn't provide one
+const imageContainer = document.getElementById('imageContainer');
+const progressBarFill = document.getElementById('progressBarFill');
+const completionMessage = document.getElementById('completionMessage');
+
+function startWebGazerStudy() {
+    webgazer.params.applyKalmanFilter = true;
+    webgazer.params.showVideoPreview = true;
+    webgazer.params.showFaceOverlay = false;
+    webgazer.params.showFaceFeedbackBox = false;
+
+    webgazer.setGazeListener((data, elapsedTime)=>{
+        if(!isPaused && data) {
+            const rect = imageContainer.getBoundingClientRect();
+            const relativeX = data.x - rect.left;
+            const relativeY = data.y - rect.top;
+
+            gazeData.push({
+                imagePath: currentImageIndex < images.length ? images[currentImageIndex].src : null,
+                gazePoint: { x: relativeX, y: relativeY },
+                timestamp: elapsedTime,
+                subject: subjectName
+            });
         }
-
-        const images = [
-            { src: 'assets/1.webp', duration: 10000 },
-            { src: 'assets/3.png', duration: 10000 },
-            { src: 'assets/4.webp', duration: 10000 },
-            { src: 'assets/5.webp', duration: 10000 },
-        ];
-
-function initializeWebGazer() {
-    return new Promise((resolve, reject) => {
-        webgazer.params.applyKalmanFilter = true;
-        webgazer.params.showVideoPreview = false;
-        webgazer.params.showFaceOverlay = false;
-        webgazer.params.showFaceFeedbackBox = false;    
-
-        webgazer.setGazeListener((data, elapsedTime) => {
-            if (!isPaused && data !== null) {
-                const gazeDotElement = document.querySelector('#webgazerGazeDot');
-                const imageContainer = document.getElementById('imageContainer');
-                const rect = imageContainer.getBoundingClientRect();
-
-                const relativeX = data.x - rect.left;
-                const relativeY = data.y - rect.top;
-
-                if (relativeX >= 0 && relativeY >= 0 && relativeX <= rect.width && relativeY <= rect.height) {
-                    gazeDotElement.style.transform = `translate3d(${relativeX}px, ${relativeY}px, 0)`;
-                }
-
-                // Push gaze data in the desired JSON format
-                gazeData.push({ 
-                    imagePath: currentImageIndex < images.length ? images[currentImageIndex].src : null,
-                    transform: { x: relativeX, y: relativeY },
-                    time: elapsedTime
-                });
-            }
-        }).begin();
-
-        resolve();
+    }).begin().then(()=>{
+        const videoContainer = document.getElementById('webgazerVideoContainer');
+        if(videoContainer){
+            videoContainer.style.position='fixed';
+            videoContainer.style.top='10px';
+            videoContainer.style.left='10px';
+            videoContainer.style.width='320px';
+            videoContainer.style.height='240px';
+            videoContainer.style.zIndex=9999;
+        }
+        showNextImage();
     });
-
-
 }
 
-        function downloadData() {
-            // Get current viewport and image container dimensions
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const imageContainer = document.getElementById('imageContainer');
-            
-            // First, collect all unique image paths and their metadata
-            const imagesMetadata = {};
-            const uniqueImagePaths = [...new Set(gazeData.map(entry => entry.imagePath))];
-            
-            // Get metadata for each unique image
-            uniqueImagePaths.forEach(imagePath => {
-                if (imageContainer) {
-                    const img = imageContainer.querySelector('img');
-                    if (img) {
-                        imagesMetadata[imagePath] = {
-                            displayWidth: img.offsetWidth,
-                            displayHeight: img.offsetHeight,
-                            naturalWidth: img.naturalWidth,
-                            naturalHeight: img.naturalHeight,
-                            position: {
-                                x: imageContainer.offsetLeft,
-                                y: imageContainer.offsetTop
-                            }
-                        };
-                    }
-                }
-            });
-            
-            // Then create the final data structure
-            const modifiedGazeData = {
-                metadata: {
-                    timestamp: new Date().toISOString(),
-                    subjectName: subjectName,
-                    viewport: {
-                        width: viewportWidth,
-                        height: viewportHeight
-                    },
-                    images: imagesMetadata
-                },
-                gazeData: gazeData.map(entry => ({
-                    imagePath: entry.imagePath,
-                    gazePoint: {
-                        absolute: entry.transform,
-                        relative: {
-                            x: entry.transform.x / viewportWidth,
-                            y: entry.transform.y / viewportHeight
-                        }
-                    },
-                    timestamp: entry.time,
-                    subjectName: subjectName
-                }))
-            };
+function showNextImage(){
+    if(currentImageIndex >= images.length) return completeStudy();
 
-                const json = JSON.stringify(modifiedGazeData, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'gaze_data.json';
-                a.click();
-                URL.revokeObjectURL(url);
+    const img = document.createElement('img');
+    img.src = images[currentImageIndex].src;
+    img.style.width='1792px';
+    img.style.height='1024px';
+    img.style.objectFit='none';
+    imageContainer.innerHTML='';
+    imageContainer.appendChild(img);
 
-                // Save to Firebase with metadata
-                const newDataRef = database.ref('gazeData').push();
-                newDataRef.set(modifiedGazeData).then(() => {
-                    console.log("Gaze data with enhanced metadata saved to Firebase.");
-                    console.log(`Session ID: ${newDataRef.key}`);
-                }).catch((error) => {
-                    console.error("Error saving data to Firebase:", error);
-                });
-            }
+    imageStartTime = performance.now();
+    showProgressBar(images[currentImageIndex].duration);
+    currentImageIndex++;
+}
 
-        function startStudy() {
-            initializeWebGazer().then(() => {
-                setTimeout(() => {
-                    instructionContainer.style.display = 'none'; // Hide instructions after 15 seconds
-                    showNextImage(); // Start the study after the instructions
-                }, 15000);
-            });
-        }
+function showProgressBar(duration){
+    let timeElapsed = 0;
+    progressBarFill.style.width='0%';
 
-        function showNextImage() {
-            if (currentImageIndex >= images.length) {
-                completeStudy();
-                return;
-            }
+    function update(){
+        if(isPaused) return;
+        timeElapsed += 100;
+        const percent = Math.min((timeElapsed/duration)*100,100);
+        progressBarFill.style.width = percent + '%';
+        if(percent >= 100) return completeCurrentImage();
+        progressBarAnimationFrame = setTimeout(update,100);
+    }
+    update();
+}
 
-            const image = images[currentImageIndex];
-            const imageElement = document.createElement('img');
-            imageElement.src = image.src;
-            imageElement.style.width = '1792px';
-            imageElement.style.height = '1024px';
-            imageElement.style.objectFit = 'none';
+function completeCurrentImage(){ showNextImage(); }
 
-            const imageContainer = document.getElementById('imageContainer');
-            imageContainer.innerHTML = '';
-            imageContainer.appendChild(imageElement);
+function toggleStudy(){
+    isPaused = !isPaused;
+    document.getElementById('pauseResumeBtn').innerText = isPaused ? 'Resume Study':'Pause Study';
+    document.getElementById('skipBtn').style.display = isPaused ? 'none':'inline-block';
+    document.getElementById('endStudyBtn').style.display = isPaused ? 'inline-block':'none';
+}
 
-            showProgressBar(image.duration);
-            currentImageIndex++;
-            imageStartTime = performance.now();
-        }
+function skipImage(){
+    clearTimeout(progressBarAnimationFrame);
+    completeCurrentImage();
+}
 
-        function showProgressBar(duration) {
-            let timeElapsed = 0;
-            progressBarFill.style.width = '0%';
+function endStudy(){
+    completeStudy();
+    downloadData();
+    setTimeout(()=>window.location.href='./results.html',1500);
+}
 
-            function updateProgressBar() {
-                if (isPaused) return;
+function completeStudy(){
+    clearTimeout(progressBarAnimationFrame);
+    completionMessage.style.display='block';
+    downloadData();
+}
 
-                timeElapsed += 100;
-                const percentage = Math.min((timeElapsed / duration) * 100, 100);
-                progressBarFill.style.width = percentage + '%';
+function downloadData(){
+    const json = JSON.stringify({subject:subjectName, gazeData:gazeData},null,2);
+    const blob = new Blob([json],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url;
+    a.download='gaze_data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
-                if (percentage >= 100) {
-                    clearInterval(progressBarAnimationFrame);
-                    completeCurrentImage();
-                }
-            }
+function navigateToResults(){ window.location.href='./results.html'; }
 
-            progressBarAnimationFrame = setInterval(updateProgressBar, 100);
-        }
-
-        function completeCurrentImage() {
-            if (currentImageIndex < images.length) {
-                showNextImage();
-            } else {
-                completeStudy();
-            }
-        }
-
-        function toggleStudy() {
-            isPaused = !isPaused;
-            const pauseResumeBtn = document.getElementById('pauseResumeBtn');
-            const endStudyBtn = document.getElementById('endStudyBtn');
-
-            pauseResumeBtn.innerText = isPaused ? 'Resume Study' : 'Pause Study';
-            if (isPaused) {
-                document.getElementById('skipBtn').style.display = 'none';
-                endStudyBtn.style.display = 'inline-block'; // Show End Study button
-            } else {
-                document.getElementById('skipBtn').style.display = 'inline-block';
-                endStudyBtn.style.display = 'none'; // Hide End Study button
-            }
-        }
-
-        function skipImage() {
-            clearInterval(progressBarAnimationFrame);
-            completeCurrentImage();
-        }
-
-        function endStudy() {
-            completeStudy();
-            downloadData(); // Automatically download data
-            setTimeout(() => {
-                window.location.href = './Results.html'; // Redirect to results page after download
-            }, 1500); // Wait 1.5 second for download to complete
-        }
-
-        function completeStudy() {
-            clearInterval(progressBarAnimationFrame);
-            instructionContainer.style.display = 'none';
-            completionMessage.style.display = 'block';
-            
-            // Automatically trigger download
-            setTimeout(() => {
-                downloadData();
-                // Update completion message after download starts
-                completionMessage.innerHTML = `
-                    <p>Study Completed!</p>
-                    <p style="color: green; font-weight: bold;">Your gaze data is being downloaded as 'gaze_data.json'</p>
-                    <p>You can also download it again using the Download button.</p>
-                    <button onclick="navigateToResults()">Go to Results</button>
-                `;
-            }, 1000); // Small delay to ensure UI updates before download
-        }
-
-    
-
-        function navigateToResults() {
-            window.location.href = './results.html';
-        }
-
-        startStudy();
-    </script>
+window.onload = ()=>{ startWebGazerStudy(); };
+</script>
 
 </body>
 </html>
