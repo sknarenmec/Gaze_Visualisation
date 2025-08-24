@@ -1,210 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eye Tracking Results</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-:root {
-    --primary: #3498db;
-    --primary-dark: #2980b9;
-    --secondary: #2c3e50;
-    --accent: #e74c3c;
-    --light: #ecf0f1;
-    --dark: #2c3e50;
-    --success: #2ecc71;
-    --warning: #f39c12;
-    --gray: #95a5a6;
-    --light-gray: #f5f7fa;
-    --white: #ffffff;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --radius: 8px;
-}
-* { box-sizing: border-box; margin:0; padding:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
-body { background-color: var(--light-gray); color: var(--dark); line-height:1.6; padding:20px; max-width:1400px; margin:0 auto;}
-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; padding:20px; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);}
-h1 { color: var(--secondary); font-size:2.2rem; font-weight:700;}
-h2 { color: var(--secondary); margin-bottom:15px; font-weight:600;}
-h3 { color: var(--secondary); margin-bottom:10px; font-weight:500;}
-.btn { display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:var(--radius); cursor:pointer; font-weight:600; transition:all 0.3s ease; border:none; text-decoration:none;}
-.btn-primary { background-color: var(--primary); color: var(--white); box-shadow: var(--shadow);}
-.btn-primary:hover { background-color: var(--primary-dark); transform: translateY(-2px);}
-.btn-secondary { background-color: var(--secondary); color: var(--white);}
-.btn-secondary:hover:not(:disabled) { background-color:#1a2530;}
-.btn:disabled { background-color: var(--gray); cursor: not-allowed; transform:none;}
-.card { background-color: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding:20px; margin-bottom:20px;}
-.subject-info { display:flex; align-items:center; gap:15px; margin-bottom:20px;}
-.subject-avatar { width:60px; height:60px; border-radius:50%; background-color: var(--primary); display:flex; align-items:center; justify-content:center; color: var(--white); font-size:1.5rem; font-weight:bold;}
-.subject-details h2 { margin-bottom:5px;}
-.subject-details p { color: var(--gray);}
-.visualization-container { position: relative; margin-bottom: 20px;}
-.heatmap-canvas { width: 100%; height: 500px; border-radius: var(--radius); background-color: var(--light); border:1px solid #ddd;}
-.image-info { display:flex; justify-content:space-between; margin-top:10px; color: var(--gray);}
-.image-placeholder { width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; background: linear-gradient(135deg,#e0e0e0 0%,#f5f5f5 100%); border-radius:var(--radius); color:#777; font-size:1.1rem; text-align:center; padding:20px; box-sizing:border-box;}
-.image-placeholder i { font-size:3rem; margin-bottom:15px; color:var(--primary);}
-.image-placeholder .image-name { font-weight:bold; margin-top:10px; font-size:1.2rem; color: var(--secondary); word-break:break-all; max-width:100%;}
-.nav-buttons { display:flex; justify-content:center; gap:15px; margin:20px 0;}
-.charts-container { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;}
-@media(max-width:992px){.charts-container{grid-template-columns:1fr;}}
-.chart-container { background-color: var(--white); padding:20px; border-radius: var(--radius); box-shadow: var(--shadow);}
-.chart-title { text-align:center; margin-bottom:15px; color: var(--secondary);}
-</style>
+  <meta charset="UTF-8">
+  <title>Gaze Visualization Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/heatmapjs@2.0.5/heatmap.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    nav {
+      width: 100%;
+      background: #222;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    nav button {
+      padding: 6px 12px;
+      background: #444;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #666;
+    }
+    #viewer {
+      position: relative;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      overflow: hidden;
+    }
+    #stimulusImage {
+      max-width: 100%;
+      max-height: 90vh;
+      display: block;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+    #heatmapContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-<header>
-<h1><i class="fas fa-eye"></i> Gaze Study Visualization</h1>
-<button id="newStudyButton" class="btn btn-primary" onclick="navigateToIndex()"><i class="fas fa-plus"></i> New Study</button>
-</header>
+  <nav>
+    <div>👁️ Gaze Visualization Results</div>
+    <button id="toggleMode">Switch to Heatmap</button>
+  </nav>
+  <div id="viewer">
+    <img id="stimulusImage" src="" alt="Stimulus">
+    <canvas id="pathCanvas"></canvas>
+    <div id="heatmapContainer"></div>
+  </div>
 
-<div class="card">
-    <div class="subject-info">
-        <div class="subject-avatar" id="subjectAvatar">U</div>
-        <div class="subject-details">
-            <h2 id="subjectName">Unknown Subject</h2>
-            <p id="subjectDetails">Upload JSON data to view analysis</p>
-        </div>
-    </div>
-    <div class="upload-container">
-        <label for="fileInput"><i class="fas fa-upload"></i> Upload JSON File with Eye Tracking Data</label>
-        <div class="file-input-container">
-            <input type="file" id="fileInput" accept=".json">
-        </div>
-    </div>
-</div>
+  <script>
+    let gazeData = [];
+    let metadata = null;
+    let currentMode = "path"; // "path" or "heatmap"
 
-<div class="nav-buttons">
-    <button id="prevBtn" class="btn btn-secondary" disabled><i class="fas fa-chevron-left"></i> Previous Image</button>
-    <span id="imageCounter">Image 0 of 0</span>
-    <button id="nextBtn" class="btn btn-secondary" disabled>Next Image <i class="fas fa-chevron-right"></i></button>
-</div>
+    const canvas = document.getElementById("pathCanvas");
+    const ctx = canvas.getContext("2d");
+    const img = document.getElementById("stimulusImage");
+    const heatmapContainer = document.getElementById("heatmapContainer");
+    const toggleBtn = document.getElementById("toggleMode");
 
-<div class="card visualization-container">
-<h2 class="chart-title">Gaze Heatmap Visualization</h2>
-<div id="imagePlaceholder" class="image-placeholder">
-    <i class="fas fa-image"></i>
-    <p>Image will be displayed here</p>
-    <p class="image-name" id="placeholderImageName">No image loaded</p>
-</div>
-
-<img id="stimulus" src="" style="display:none;" />
-<canvas id="gazeCanvas" class="heatmap-canvas" style="display:none;"></canvas>
-
-<div style="text-align:center; margin-top:10px;">
-<button id="togglePathBtn" class="btn btn-secondary">Hide Gaze Path</button>
-</div>
-
-<div class="image-info">
-    <span id="currentImageName">No image loaded</span>
-    <span id="gazePointsCount">0 gaze points</span>
-</div>
-</div>
-
-<div class="charts-container">
-    <div class="chart-container">
-        <h2 class="chart-title">Fixation Distribution</h2>
-        <canvas id="fixationChart" width="300" height="300"></canvas>
-    </div>
-    <div class="chart-container">
-        <h2 class="chart-title">Gaze Timeline</h2>
-        <canvas id="timelineChart" width="900" height="400"></canvas>
-    </div>
-</div>
-
-<script>
-let currentData = null, currentIndex = 0, imageGazeData = {}, currentImagePath = '';
-const fileInput = document.getElementById('fileInput');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const imageCounter = document.getElementById('imageCounter');
-const currentImageName = document.getElementById('currentImageName');
-const gazePointsCount = document.getElementById('gazePointsCount');
-const subjectNameElement = document.getElementById('subjectName');
-const subjectAvatar = document.getElementById('subjectAvatar');
-const subjectDetails = document.getElementById('subjectDetails');
-const imagePlaceholder = document.getElementById('imagePlaceholder');
-const placeholderImageName = document.getElementById('placeholderImageName');
-const canvas = document.getElementById('gazeCanvas');
-const img = document.getElementById('stimulus');
-let showGazePath = true;
-
-function navigateToIndex() { window.location.href = 'index.html'; }
-document.getElementById('togglePathBtn').addEventListener('click', ()=>{ showGazePath = !showGazePath; displayImage(currentIndex); document.getElementById('togglePathBtn').textContent = showGazePath ? "Hide Gaze Path":"Show Gaze Path"; });
-
-fileInput.addEventListener('change', e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    if(file.type!=='application/json' && !file.name.endsWith('.json')) { alert('Upload valid JSON'); return; }
-    const reader = new FileReader();
-    reader.onload = evt=>{
-        try { processData(JSON.parse(evt.target.result)); } 
-        catch(err){ alert('Invalid JSON: '+err.message);}
+    // === Resize canvas & overlay ===
+    function resizeCanvas() {
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+      heatmapContainer.style.width = img.clientWidth + "px";
+      heatmapContainer.style.height = img.clientHeight + "px";
     }
-    reader.readAsText(file);
-});
+    window.addEventListener("resize", resizeCanvas);
 
-function processData(data){
-    currentData = data; currentIndex=0;
-    if(data.metadata?.subjectName){ subjectNameElement.textContent=data.metadata.subjectName; subjectAvatar.textContent=data.metadata.subjectName.charAt(0); }
-    imageGazeData = {};
-    if(data.gazeData?.length>0){
-        data.gazeData.forEach(p=>{
-            if(!p.imagePath || p.imagePath==="null") return;
-            if(!imageGazeData[p.imagePath]) imageGazeData[p.imagePath]=[];
-            imageGazeData[p.imagePath].push(p);
-        });
+    // === Load JSON ===
+    async function loadData() {
+      const res = await fetch("gazeData.json"); // adjust path if needed
+      const json = await res.json();
+      gazeData = json.gazeData;
+      metadata = json.metadata;
+      img.src = Object.keys(metadata.images)[0]; // first image by default
+
+      img.onload = () => {
+        resizeCanvas();
+        if (currentMode === "path") startPathAnimation();
+        else renderHeatmap();
+      };
     }
-    displayImage(0);
-}
 
-function displayImage(index){
-    const paths = Object.keys(imageGazeData).filter(p=>p&&p!=="null");
-    if(paths.length===0) return;
-    index=Math.max(0, Math.min(index, paths.length-1)); currentIndex=index;
-    const path = paths[index]; currentImagePath=path; const gazePoints=imageGazeData[path];
-    const imageName = path.split('/').pop();
-    currentImageName.textContent=imageName; placeholderImageName.textContent=imageName; gazePointsCount.textContent=gazePoints.length+" gaze points";
-    imageCounter.textContent=`Image ${currentIndex+1} of ${paths.length}`;
-    prevBtn.disabled=currentIndex===0; nextBtn.disabled=currentIndex===paths.length-1;
-    imagePlaceholder.style.display="none"; canvas.style.display="block";
-    img.onload=()=>{ animateGazePath(img,gazePoints,canvas); };
-    img.onerror=()=>{ imagePlaceholder.style.display="flex"; canvas.style.display="none"; };
-    img.src=path; img.style.display="none";
-}
-
-prevBtn.addEventListener('click',()=>{ displayImage(currentIndex-1); });
-nextBtn.addEventListener('click',()=>{ displayImage(currentIndex+1); });
-
-function getXY(p, canvas){
-    if(!p?.gazePoint?.relative) return [null,null];
-    let x = p.gazePoint.relative.x * canvas.width;
-    let y = p.gazePoint.relative.y * canvas.height;
-    x = Math.max(0, Math.min(canvas.width, x));
-    y = Math.max(0, Math.min(canvas.height, y));
-    return [x,y];
-}
-
-function animateGazePath(img, gazePoints, canvas){
-    const ctx=canvas.getContext('2d');
-    canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-
-    if(!showGazePath) return;
-
-    let idx=0;
-    function drawNext(){
-        if(idx>=gazePoints.length) return;
-        let [x1,y1]=getXY(gazePoints[idx],canvas);
-        if(idx>0){ let [x0,y0]=getXY(gazePoints[idx-1],canvas);
-            ctx.strokeStyle='rgba(231,76,60,0.7)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
-            ctx.fillStyle='rgba(52,152,219,0.8)'; ctx.beginPath(); ctx.arc(x1,y1,4,0,Math.PI*2); ctx.fill();
-        } else { ctx.fillStyle='rgba(52,152,219,0.8)'; ctx.beginPath(); ctx.arc(x1,y1,4,0,Math.PI*2); ctx.fill(); }
-        idx++; requestAnimationFrame(drawNext);
+    // === Coordinate Mapping ===
+    function getRelativeCoords(d) {
+      if (!metadata || !metadata.images[d.imagePath]) return null;
+      const rel = d.gazePoint.relative;
+      if (rel.x < 0 || rel.x > 1 || rel.y < 0 || rel.y > 1) return null;
+      return {
+        x: rel.x * canvas.width,
+        y: rel.y * canvas.height
+      };
     }
-    drawNext();
-}
-</script>
+
+    // === Path Animation with fading trails ===
+    function startPathAnimation() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let i = 0;
+      function drawStep() {
+        if (i >= gazeData.length - 1) return;
+
+        const p1 = getRelativeCoords(gazeData[i]);
+        const p2 = getRelativeCoords(gazeData[i + 1]);
+
+        // fade old trails
+        ctx.fillStyle = "rgba(0,0,0,0.1)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (p1 && p2) {
+          const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+          grad.addColorStop(0, "rgba(0,255,255,0.9)");
+          grad.addColorStop(1, "rgba(255,0,0,0.9)");
+
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+
+          // draw gaze point
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          ctx.beginPath();
+          ctx.arc(p2.x, p2.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        i++;
+        requestAnimationFrame(drawStep);
+      }
+
+      drawStep();
+    }
+
+    // === Heatmap Rendering ===
+    function renderHeatmap() {
+      heatmapContainer.innerHTML = "";
+      const heatmap = h337.create({
+        container: heatmapContainer,
+        radius: 40,
+        maxOpacity: 0.6,
+        minOpacity: 0,
+        blur: 0.85
+      });
+
+      const points = [];
+      gazeData.forEach(d => {
+        const p = getRelativeCoords(d);
+        if (p) points.push({ x: p.x, y: p.y, value: 1 });
+      });
+
+      heatmap.setData({
+        max: 10,
+        data: points
+      });
+    }
+
+    // === Toggle Mode ===
+    toggleBtn.addEventListener("click", () => {
+      if (currentMode === "path") {
+        currentMode = "heatmap";
+        canvas.style.display = "none";
+        heatmapContainer.style.display = "block";
+        toggleBtn.textContent = "Switch to Path";
+        renderHeatmap();
+      } else {
+        currentMode = "path";
+        canvas.style.display = "block";
+        heatmapContainer.style.display = "none";
+        toggleBtn.textContent = "Switch to Heatmap";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        startPathAnimation();
+      }
+    });
+
+    loadData();
+  </script>
 </body>
 </html>
