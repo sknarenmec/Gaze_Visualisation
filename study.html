@@ -114,23 +114,6 @@
             display: none;
             z-index: 100000;
         }
-		
-		
-        .quality-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        .quality-good {
-            background-color: #00e676;
-        }
-
-        .quality-poor {
-            background-color: #ff5252;
-        }
     </style>
 </head>
 <body>
@@ -146,14 +129,8 @@
             <li>Use the buttons to download data or skip images.</li>
         </ul>
     </div>
-	
-    <div id="imageContainer"></div>	
-	<div id="trackingStatus" class="good">
-        <span class="quality-indicator quality-good"></span>
-        Tracking Quality: Good
-    </div>
 
-
+    <div id="imageContainer"></div>
     <button id="downloadDataBtn" onclick="downloadData()">Download</button>
     <button id="pauseResumeBtn" onclick="toggleStudy()">Pause Study</button>
     <button id="skipBtn" onclick="skipImage()">Skip Image</button>
@@ -194,7 +171,6 @@
         let imageDisplayLog = [];
         let progressBarFill = document.getElementById('progressBarFill');
         let instructionContainer = document.getElementById('instructionContainer');
-        let trackingStatus = document.getElementById('trackingStatus');
         let completionMessage = document.getElementById('completionMessage');
         let progressBarAnimationFrame;
         let subjectName = prompt("Please enter the subject name:");
@@ -203,114 +179,46 @@
         }
 
         const images = [
-            { src: 'assets/1.png', duration: 10000 },
+            { src: 'assets/1.webp', duration: 10000 },
             { src: 'assets/3.png', duration: 10000 },
             { src: 'assets/4.webp', duration: 10000 },
             { src: 'assets/5.webp', duration: 10000 },
         ];
 
-// Initialize WebGazer with better tracking parameters
-        function initializeWebGazer() {
-            return new Promise((resolve, reject) => {
-                // Configure WebGazer for better accuracy
-                webgazer.params.applyKalmanFilter = true;
-                webgazer.params.smoothing = true;
-                webgazer.params.faceOverlay = false;
-                webgazer.params.showFaceFeedbackBox = false;
-                webgazer.params.showVideoPreview = false;
-                webgazer.params.faceFeedbackBox = false;
-                webgazer.params.recordEye = true;
-               
-                // Set regression method to ridge for better performance
-                webgazer.setRegression('ridge');
-               
-                // Set up gaze listener with enhanced data collection
-                webgazer.setGazeListener((data, elapsedTime) => {
-                    if (!isPaused && data !== null) {
-                        processGazeData(data, elapsedTime);
-                    }
-                }).begin().then(() => {
-                    console.log("WebGazer initialized successfully");
-                   
-                    // Start tracking quality monitoring
-                    startQualityMonitoring();
-                   
-                    resolve();
-                }).catch(error => {
-                    console.error("Error initializing WebGazer:", error);
-                    reject(error);
-                });
-            });
-        }
+function initializeWebGazer() {
+    return new Promise((resolve, reject) => {
+        webgazer.params.applyKalmanFilter = true;
+        webgazer.params.showVideoPreview = false;
+        webgazer.params.showFaceOverlay = false;
+        webgazer.params.showFaceFeedbackBox = false;    
 
-        // Enhanced gaze data processing
-        function processGazeData(data, elapsedTime) {
-            const gazeDotElement = document.querySelector('#webgazerGazeDot');
-            const imageContainer = document.getElementById('imageContainer');
-           
-            if (!imageContainer.hasChildNodes()) return;
-           
-            const rect = imageContainer.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-           
-            // Calculate relative coordinates with boundary checks
-            let relativeX = Math.max(0, Math.min(1, (data.x - rect.left) / rect.width));
-            let relativeY = Math.max(0, Math.min(1, (data.y - rect.top) / rect.height));
-           
-            // Update gaze dot position
-            if (gazeDotElement) {
-                gazeDotElement.style.transform = `translate3d(${data.x}px, ${data.y}px, 0)`;
+        webgazer.setGazeListener((data, elapsedTime) => {
+            if (!isPaused && data !== null) {
+                const gazeDotElement = document.querySelector('#webgazerGazeDot');
+                const imageContainer = document.getElementById('imageContainer');
+                const rect = imageContainer.getBoundingClientRect();
+
+                const relativeX = data.x - rect.left;
+                const relativeY = data.y - rect.top;
+
+                if (relativeX >= 0 && relativeY >= 0 && relativeX <= rect.width && relativeY <= rect.height) {
+                    gazeDotElement.style.transform = `translate3d(${relativeX}px, ${relativeY}px, 0)`;
+                }
+
+                // Push gaze data in the desired JSON format
+                gazeData.push({ 
+                    imagePath: currentImageIndex < images.length ? images[currentImageIndex].src : null,
+                    transform: { x: relativeX, y: relativeY },
+                    time: elapsedTime
+                });
             }
-           
-            // Store gaze data with enhanced information
-            gazeData.push({
-                imagePath: images[currentImageIndex].src,
-                gazePoint: {
-                    absolute: { x: data.x, y: data.y },
-                    relative: { x: relativeX, y: relativeY },
-                    viewport: { width: viewportWidth, height: viewportHeight }
-                },
-                time: elapsedTime,
-                timestamp: new Date().toISOString(),
-                subjectName: subjectName,
-                trackingQuality: trackingQuality
-            });
-        }
+        }).begin();
 
-        // Monitor tracking quality
-        function startQualityMonitoring() {
-            let nullDataCount = 0;
-            let totalChecks = 0;
-           
-            qualityCheckInterval = setInterval(() => {
-                webgazer.getCurrentPrediction().then(prediction => {
-                    totalChecks++;
-                   
-                    if (!prediction) {
-                        nullDataCount++;
-                    }
-                   
-                    // Calculate quality percentage
-                    const qualityPercent = ((totalChecks - nullDataCount) / totalChecks) * 100;
-                   
-                    // Update tracking status
-                    if (qualityPercent > 80) {
-                        trackingQuality = 'good';
-                        trackingStatus.className = 'good';
-                        trackingStatus.innerHTML = '<span class="quality-indicator quality-good"></span> Tracking Quality: Good';
-                    } else if (qualityPercent > 50) {
-                        trackingQuality = 'fair';
-                        trackingStatus.className = 'good';
-                        trackingStatus.innerHTML = '<span class="quality-indicator quality-good"></span> Tracking Quality: Fair';
-                    } else {
-                        trackingQuality = 'poor';
-                        trackingStatus.className = 'poor';
-                        trackingStatus.innerHTML = '<span class="quality-indicator quality-poor"></span> Tracking Quality: Poor - Try to stay still';
-                    }
-                });
-            }, 2000);
-        }
+        resolve();
+    });
+
+
+}
 
         function downloadData() {
             // Get current viewport and image container dimensions
