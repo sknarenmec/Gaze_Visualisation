@@ -165,43 +165,56 @@
   let startTime;
   let isTracking = false;
 
-function startWebGazer() {
-  webgazer.params.applyKalmanFilter = true;
+  function startWebGazer() {
+    webgazer.params.applyKalmanFilter = true;
 
-  webgazer.setGazeListener((data, elapsedTime) => {
-    if (data !== null && isTracking) {
-      createRedDot(data.x, data.y);
+    webgazer.setGazeListener((data, elapsedTime) => {
+      if (data !== null && isTracking) {
+        createRedDot(data.x, data.y);
 
-      const transformValue = document.querySelector('#webgazerGazeDot').style.transform;
-      const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
-      const matches = transformValue.match(regex);
-      const x = matches ? parseFloat(matches[1]) : null;
-      const y = matches ? parseFloat(matches[2]) : null;
+        const transformValue = document.querySelector('#webgazerGazeDot')?.style.transform;
+        const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
+        const matches = transformValue?.match(regex);
+        const x = matches ? parseFloat(matches[1]) : null;
+        const y = matches ? parseFloat(matches[2]) : null;
 
-      gazeData.push({ x, y, time: Date.now() - startTime });
-    }
-  }).begin().then(() => {
-    // 🔹 Force webcam video container to stay visible
-    const videoContainer = document.getElementById('webgazerVideoContainer');
-    if (videoContainer) {
-      videoContainer.style.display = 'block';
-      videoContainer.style.position = 'fixed';
-      videoContainer.style.top = '10px';
-      videoContainer.style.left = '10px';
-      videoContainer.style.width = '320px';
-      videoContainer.style.height = '240px';
-      videoContainer.style.zIndex = 9999;
-    }
+        gazeData.push({ x, y, time: Date.now() - startTime });
+      }
+    })
+    .begin()
+    .then(() => {
+      // force webcam video ON
+      webgazer.showVideo(true).showPredictionPoints(true);
 
-    const videoFeed = document.getElementById('webgazerVideoFeed');
-    if (videoFeed) {
-      videoFeed.style.display = 'block';
-      videoFeed.style.width = '100%';
-      videoFeed.style.height = '100%';
-    }
-  });
-}
+      const videoContainer = document.getElementById('webgazerVideoContainer');
+      if (videoContainer) {
+        videoContainer.style.display = 'block';
+        videoContainer.style.position = 'fixed';
+        videoContainer.style.top = '10px';
+        videoContainer.style.left = '10px';
+        videoContainer.style.width = '320px';
+        videoContainer.style.height = '240px';
+        videoContainer.style.zIndex = 9999;
+      }
 
+      const videoFeed = document.getElementById('webgazerVideoFeed');
+      if (videoFeed) {
+        videoFeed.style.display = 'block';
+        videoFeed.style.width = '100%';
+        videoFeed.style.height = '100%';
+      }
+
+      // 🔹 Watch for unwanted style changes (WebGazer may hide it)
+      if (videoContainer) {
+        const observer = new MutationObserver(() => {
+          if (videoContainer.style.display === 'none') {
+            videoContainer.style.display = 'block';
+          }
+        });
+        observer.observe(videoContainer, { attributes: true, attributeFilter: ['style'] });
+      }
+    });
+  }
 
   function createRedDot(x, y) {
     const redDot = document.createElement('div');
@@ -209,6 +222,9 @@ function startWebGazer() {
     redDot.style.left = x + 'px';
     redDot.style.top = y + 'px';
     document.body.appendChild(redDot);
+
+    // remove after 1 sec to avoid infinite pileup
+    setTimeout(() => redDot.remove(), 1000);
   }
 
   function startStudy() {
@@ -230,5 +246,6 @@ function startWebGazer() {
     startStudyButton.addEventListener('click', startStudy);
   }
 </script>
+
 </body>
 </html>
