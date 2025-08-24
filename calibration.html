@@ -165,22 +165,35 @@
   let startTime;
   let isTracking = false;
 
-  function startWebGazer() {
-    webgazer.params.applyKalmanFilter = true;
+function startWebGazer() {
+  webgazer.params.applyKalmanFilter = true;
 
-    webgazer.setGazeListener((data, elapsedTime) => {
-      if (data !== null && isTracking) {
-        createRedDot(data.x, data.y);
-        const transformValue = document.querySelector('#webgazerGazeDot').style.transform;
-        const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
-        const matches = transformValue.match(regex);
-        const x = matches ? parseFloat(matches[1]) : null;
-        const y = matches ? parseFloat(matches[2]) : null;
+  webgazer.setGazeListener((data, elapsedTime) => {
+    if (data !== null && isTracking) {
+      createRedDot(data.x, data.y);
+      const transformValue = document.querySelector('#webgazerGazeDot').style.transform;
+      const regex = /translate3d\((.+?)px, (.+?)px, .+?\)/;
+      const matches = transformValue.match(regex);
+      const x = matches ? parseFloat(matches[1]) : null;
+      const y = matches ? parseFloat(matches[2]) : null;
 
-        gazeData.push({ x, y, time: Date.now() - startTime });
-      }
-    }).begin();
+      gazeData.push({ x, y, time: Date.now() - startTime });
+    }
+  }).begin();
+
+  // 🔹 Force webcam video to be visible
+  const video = document.getElementById('webgazerVideoFeed');
+  if (video) {
+    video.style.display = 'block';  // default is "none"
+    video.style.position = 'fixed';
+    video.style.top = '10px';
+    video.style.left = '10px';
+    video.style.width = '320px';
+    video.style.height = '240px';
+    video.style.zIndex = 1000;
   }
+}
+
 
   function createRedDot(x, y) {
     const redDot = document.createElement('div');
